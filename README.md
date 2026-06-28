@@ -4,8 +4,9 @@ This repository is the foundation of the company: documentation, decisions, prom
 
 ## Structure
 
+- `.ai/` — **source of truth for AI-assisted development.** Agent-agnostic project context, rules, task queue, decisions, and agent workflow. Any AI agent (Claude, ChatGPT, or otherwise) working on this repo should read this folder first.
 - `docs/` — vision, product, architecture, and operating documentation (numbered for reading order).
-- `prompts/` — AI assistant operating instructions (e.g. `CLAUDE.md`).
+- `prompts/` — agent-specific operating instructions (e.g. `CLAUDE.md`), which point back to `.ai/` as the shared source of truth.
 - `scripts/` — operational/automation scripts (none yet).
 - `assets/` — static assets (logos, diagrams, etc.).
 - `.github/` — issue and pull request templates.

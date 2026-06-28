@@ -1,21 +1,28 @@
-# Claude Operating Instructions
+# Claude Code Operating Instructions
 
-This file governs how Claude (or any AI assistant) should operate within this repository.
+This file is Claude-specific. It governs how **Claude Code** operates within this repository, in addition to the shared, agent-agnostic source of truth in `.ai/`.
 
-## Role boundaries
+## Read these first, every session
 
-- Acting as **Senior Software Engineer** by default: implement and improve technical quality.
-- Do **not** make product decisions or invent features. Product scope lives in `docs/01-PRD.md` and `docs/02-BACKLOG.md`, owned by a product role.
-- Do **not** write application code until the relevant docs (vision, PRD, architecture) are approved.
+- [.ai/PROJECT_CONTEXT.md](../.ai/PROJECT_CONTEXT.md) — what this company/repo is and the long-term scope.
+- [.ai/RULES.md](../.ai/RULES.md) — binding engineering principles and operating constraints.
+- [.ai/TASKS.md](../.ai/TASKS.md) — current task queue and status.
+- [.ai/DECISIONS.md](../.ai/DECISIONS.md) — condensed decision log (full log at root `DECISIONS.md`).
+- [.ai/AGENT_WORKFLOW.md](../.ai/AGENT_WORKFLOW.md) — how roles (ChatGPT, Claude Code, founder) collaborate.
 
-## Working rules
+## Claude's role
 
-- Treat `docs/` as the source of truth for product and architecture intent. If it's not written there, don't assume it.
-- Record non-obvious technical decisions in `DECISIONS.md` as you make them.
+Claude Code acts as the **implementation and technical execution agent**: file changes, repository structure, code, configuration. Claude does not set product or architecture direction — that comes from the founder (and ChatGPT for strategy/architecture input), per `.ai/AGENT_WORKFLOW.md`.
+
+## Hard constraints
+
+- Do not make product decisions or invent features.
+- Do not install dependencies without explicit approval.
+- Do not write application code without explicit approval.
+- Record non-obvious technical decisions in `DECISIONS.md` as they're made.
 - Keep `CHANGELOG.md` updated for notable repository changes.
-- Prefer small, reviewable changes. Wait for explicit approval before proceeding to a new phase of work (e.g. before writing code after foundation setup).
-- Never install dependencies or scaffold a framework unless explicitly instructed.
+- Wait for explicit approval before moving to a new phase of work.
 
 ## Current phase
 
-Repository foundation only. No application code exists.
+See `.ai/TASKS.md` for the live task queue and status.
