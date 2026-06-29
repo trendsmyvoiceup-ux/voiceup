@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { comparisons, type Comparison, type Subject, type VisualTheme } from "@/lib/comparisons";
+import { slugify } from "@/lib/subjects";
 import { BattleVisual } from "@/components/battle-visual";
 import { cn } from "@/lib/utils";
 
@@ -174,6 +175,21 @@ export function ComparisonVoter({ comparison }: { comparison: Comparison }) {
           <p className="text-sm font-semibold">
             Thanks for voting · {total.toLocaleString()} total votes
           </p>
+
+          <div className="flex w-full max-w-sm gap-3 text-sm">
+            <Link
+              href={`/subject/${slugify(comparison.subjectA.name)}`}
+              className="flex-1 rounded-full border border-white/15 px-4 py-2 font-medium text-white/70 hover:bg-white/10"
+            >
+              View {comparison.subjectA.name}
+            </Link>
+            <Link
+              href={`/subject/${slugify(comparison.subjectB.name)}`}
+              className="flex-1 rounded-full border border-white/15 px-4 py-2 font-medium text-white/70 hover:bg-white/10"
+            >
+              View {comparison.subjectB.name}
+            </Link>
+          </div>
 
           <div className="flex w-full max-w-sm gap-3">
             <button

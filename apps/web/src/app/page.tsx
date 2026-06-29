@@ -1,30 +1,34 @@
 import Link from "next/link";
-import { comparisons } from "@/lib/comparisons";
+import { getComparisonBySlug } from "@/lib/comparisons";
+import { ComparisonVoter } from "@/components/comparison-voter";
+
+// Fixed featured battle: deterministic on purpose, so the homepage is
+// predictable for testing and social sharing. Not randomized.
+const FEATURED_SLUG = "apple-vs-android";
 
 export default function Home() {
+  const featured = getComparisonBySlug(FEATURED_SLUG)!;
+
   return (
-    <main className="flex min-h-screen flex-col items-center gap-10 px-6 py-20">
-      <div className="text-center">
-        <h1 className="text-3xl font-semibold tracking-tight">Opinion Platform</h1>
-        <p className="mt-2 text-muted-foreground">Pick a side. Cast your vote.</p>
+    <main className="relative flex h-screen w-screen flex-col bg-black">
+      <div className="pointer-events-none absolute left-0 right-0 top-12 z-10 flex justify-center sm:top-16">
+        <span className="rounded-full bg-white px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-black">
+          Add your Voice
+        </span>
       </div>
 
-      <div className="grid w-full max-w-md gap-3">
-        {comparisons.map((comparison) => (
-          <Link
-            key={comparison.id}
-            href={`/battle/${comparison.id}`}
-            className="rounded-3xl border bg-muted/40 p-7 text-center text-lg font-medium transition-colors hover:bg-muted active:scale-[0.99]"
-          >
-            {comparison.subjectA.name} <span className="text-muted-foreground">vs</span>{" "}
-            {comparison.subjectB.name}
-          </Link>
-        ))}
+      <div className="relative flex-1">
+        <ComparisonVoter comparison={featured} />
       </div>
 
-      <p className="text-xs text-muted-foreground">
-        Community signal, not a scientific poll · Source: website
-      </p>
+      <div className="flex shrink-0 items-center justify-center gap-6 bg-black py-4 text-sm">
+        <Link href="/category" className="text-white/60 hover:text-white">
+          Continue exploring
+        </Link>
+        <Link href="/battle" className="text-white/60 hover:text-white">
+          More battles
+        </Link>
+      </div>
     </main>
   );
 }
