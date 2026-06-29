@@ -38,3 +38,19 @@ This is a condensed, agent-facing summary of key decisions. The full decision lo
 - **Docs numbering gap at `docs/11`:** accepted, will not be filled retroactively. Renumbering, if ever done, is deferred and not prioritized.
 - **Topic restriction for MVP comparisons:** no sport, no politics, no religion — to avoid unmanageable controversy while validating the product. Allowed MVP topic space: technology, products, pop culture. The specific five Subject pairs remain a separate upcoming founder decision.
 - **URL slug format:** deferred to implementation time (routing layer); explicitly not a strategic decision.
+
+## Content Factory — Battle Package architecture (TASK-0025/0026/0027)
+
+- **Battle Package is the single source of truth.** Once the Battle Designer writes `output/battles/<slug>/`, that folder (`manifest.json`, `battle.json`, `status.json`, `script.txt`, `caption.txt`, `hashtags.txt`, `image_prompt.txt`, `video_prompt.txt`) is authoritative. Website, Publisher, and any future consumer (Instagram, X, YouTube, API, MCP, etc.) read it **independently** — there is no sequential Website → Publisher dependency, and none is permitted. Each consumer writes only its own key in `status.json`.
+- **All handoffs are file-based, permanently.** Planner writes `output/proposals/<slug>.json`; there is no in-memory or conversational handoff anywhere in the pipeline. This is a permanent architectural decision (TASK-0024/0025), not subject to change without a new founder decision.
+- **Pipeline order:** Founder → Planner → Battle Designer → Battle Package → (Website, Publisher, future consumers, all independent). See `agents/shared/CONTRACT.md` for the authoritative diagram.
+- **Output folders:** `output/proposals/`, `output/battles/`, `output/published/`, `output/reports/` — the latter two reserved/empty until real publishing and an automated runner exist.
+- **First real agent — Planner (TASK-0027):** implemented as a deterministic, executable agent (`scripts/planner.ts`, orchestrated by `scripts/run-pipeline.ts`). Given a category name, it looks up a matching pair in a static catalog and writes a conforming proposal (`subjectA`, `subjectB`, `category`, `title`, `rationale`). No LLM, no randomness. Battle Designer, Website, and Publisher remain stubs.
+- **Catalog duplication accepted as temporary:** `scripts/catalog.ts` is a manually-maintained snapshot of `apps/web/src/lib/comparisons.ts`, not a live cross-project import. Founder confirmed this is acceptable for now — no shared package should be built yet.
+- **Planner scope accepted as sufficient for v1:** one Subject pair per category (a lookup, not a real multi-option selection) is acceptable for this first deterministic implementation. Multi-option selection and duplicate avoidance against existing battles/proposals are explicitly deferred, not required now.
+
+## Battle Control Room — TASK-0028 (requested as "TASK-0027"; corrected to TASK-0028 per founder)
+
+- Internal-only admin surface at `/admin` in `apps/web`: lists all battles with title, slug, category, website URL, proposal existence, and Battle Package existence; local-only status (Draft/Ready/Paused/Archived) via `localStorage`; quick links to the battle page and both subjects; a "Content Factory" section showing live counts of `output/proposals/`, `output/battles/`, `output/published/`, `output/reports/`.
+- No authentication, no database, no external APIs, no TikTok publishing — explicitly a local/internal prototype, marked with a visible warning banner.
+- Founder confirmed: filesystem reads on every request (`force-dynamic`) are acceptable for this internal tool, and `/admin` must remain unlinked from public navigation for now.

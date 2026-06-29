@@ -1,0 +1,15 @@
+{
+  "id": "apple-vs-android",
+  "subjectA": {
+    "name": "Apple",
+    "mediaLabel": "Apple",
+    "mediaHint": "Smartphone ecosystem"
+  },
+  "subjectB": {
+    "name": "Android",
+    "mediaLabel": "Android",
+    "mediaHint": "Smartphone ecosystem"
+  },
+  "category": "Technology",
+  "visualTheme": "tech"
+}

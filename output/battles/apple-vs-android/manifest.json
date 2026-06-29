@@ -1,0 +1,15 @@
+{
+  "slug": "apple-vs-android",
+  "schemaVersion": 1,
+  "createdFrom": "output/proposals/apple-vs-android.json",
+  "files": [
+    "manifest.json",
+    "battle.json",
+    "status.json",
+    "script.txt",
+    "caption.txt",
+    "hashtags.txt",
+    "image_prompt.txt",
+    "video_prompt.txt"
+  ]
+}
