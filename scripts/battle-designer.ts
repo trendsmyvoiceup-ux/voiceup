@@ -9,6 +9,7 @@
 
 const fs = require("fs");
 const path = require("path");
+const { readJSON, writeJSON, writeText, ensureDir } = require("./fsutil.ts");
 
 type Proposal = {
   subjectA: string;
@@ -87,14 +88,6 @@ function buildVideoPrompt(subjectA: string, subjectB: string): string {
   ].join("\n");
 }
 
-function writeText(filePath: string, content: string) {
-  fs.writeFileSync(filePath, content.endsWith("\n") ? content : content + "\n");
-}
-
-function writeJSON(filePath: string, data: unknown) {
-  fs.writeFileSync(filePath, JSON.stringify(data, null, 2) + "\n");
-}
-
 /**
  * Reads output/proposals/<slug>.json and writes a complete Battle Package
  * to output/battles/<slug>/. Returns the battle directory path.
@@ -103,14 +96,12 @@ function runBattleDesigner(slug: string, proposalPath: string, battlesDir: strin
   if (!fs.existsSync(proposalPath)) {
     throw new Error(`Proposal missing: ${proposalPath}`);
   }
-  const proposal: Proposal = JSON.parse(fs.readFileSync(proposalPath, "utf-8"));
+  const proposal = readJSON(proposalPath) as Proposal;
   const { subjectA, subjectB, category } = proposal;
   const visualTheme = themeFor(category);
 
   const battleDir = path.join(battlesDir, slug);
-  if (!fs.existsSync(battleDir)) {
-    fs.mkdirSync(battleDir, { recursive: true });
-  }
+  ensureDir(battleDir);
 
   const files = [
     "manifest.json",
@@ -139,6 +130,7 @@ function runBattleDesigner(slug: string, proposalPath: string, battlesDir: strin
   });
 
   writeJSON(path.join(battleDir, "status.json"), {
+    reviewer: { status: "pending", updatedAt: null },
     website: { status: "pending", updatedAt: null },
     publisher: { status: "pending", updatedAt: null },
   });

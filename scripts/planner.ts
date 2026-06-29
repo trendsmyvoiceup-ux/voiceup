@@ -1,18 +1,19 @@
 /**
- * Planner agent — first real (non-stub) agent in the Content Factory.
+ * Planner agent — deterministic, no LLM, no randomness.
  *
- * Deterministic only: no LLM, no randomness. Given a category name, it
- * selects the matching pair from the static catalog (see `catalog.ts`),
- * builds the proposal, and writes it to
- * `output/proposals/<slug>.json` — conforming to the shared contract in
- * `agents/shared/CONTRACT.md`.
+ * Given a category name, generates a proposal for EVERY unique unordered
+ * pair of subjects in that category's static catalog entry (see
+ * `catalog.ts`), writing each to `output/proposals/<slug>.json`. Same
+ * input always produces the same set of proposals.
  */
 
-const fs = require("fs");
 const path = require("path");
 const { CATALOG } = require("./catalog.ts");
+const { writeJSON, ensureDir, slugify } = require("./fsutil.ts");
 
-type CatalogEntry = { subjectA: string; subjectB: string; category: string };
+type CategorySubjects = { category: string; subjects: string[] };
+
+type Pair = { subjectA: string; subjectB: string };
 
 type Proposal = {
   subjectA: string;
@@ -22,59 +23,81 @@ type Proposal = {
   rationale: string;
 };
 
-function slugify(name: string): string {
-  return name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
-}
-
-function slugFor(entry: CatalogEntry): string {
-  return `${slugify(entry.subjectA)}-vs-${slugify(entry.subjectB)}`;
+function slugFor(pair: Pair): string {
+  return `${slugify(pair.subjectA)}-vs-${slugify(pair.subjectB)}`;
 }
 
 /**
- * Deterministically picks the catalog entry for a given category name
+ * Deterministically finds the catalog entry for a given category name
  * (case-insensitive). Always returns the same result for the same input —
  * no randomness, no AI.
  */
-function selectEntry(category: string): CatalogEntry {
+function selectCategory(category: string): CategorySubjects {
   const normalized = category.trim().toLowerCase();
-  const match = (CATALOG as CatalogEntry[]).find(
+  const match = (CATALOG as CategorySubjects[]).find(
     (entry) => entry.category.toLowerCase() === normalized
   );
   if (!match) {
-    const known = (CATALOG as CatalogEntry[]).map((e) => e.category).join(", ");
+    const known = (CATALOG as CategorySubjects[]).map((e) => e.category).join(", ");
     throw new Error(`No catalog entry for category "${category}". Known categories: ${known}`);
   }
   return match;
 }
 
-function buildProposal(entry: CatalogEntry): Proposal {
+/**
+ * Every unique unordered pair from a list of subjects, in a fixed
+ * (catalog-order) sequence — no duplicates, no (B, A) mirror of an
+ * already-listed (A, B) pair.
+ */
+function buildPairs(subjects: string[]): Pair[] {
+  const pairs: Pair[] = [];
+  for (let i = 0; i < subjects.length; i++) {
+    for (let j = i + 1; j < subjects.length; j++) {
+      pairs.push({ subjectA: subjects[i], subjectB: subjects[j] });
+    }
+  }
+  return pairs;
+}
+
+function buildProposal(pair: Pair, category: string): Proposal {
   return {
-    subjectA: entry.subjectA,
-    subjectB: entry.subjectB,
-    category: entry.category,
-    title: `${entry.subjectA} vs ${entry.subjectB}`,
-    rationale: `Deterministically selected from the static ${entry.category} catalog entry — no AI, no randomness.`,
+    subjectA: pair.subjectA,
+    subjectB: pair.subjectB,
+    category,
+    title: `${pair.subjectA} vs ${pair.subjectB}`,
+    rationale: `Deterministically selected from the static ${category} catalog — no AI, no randomness.`,
   };
 }
 
 /**
- * Runs the Planner for a given category, writing
- * `output/proposals/<slug>.json`. Returns the generated slug so the caller
- * (the pipeline runner) knows where the rest of the pipeline should look.
+ * Runs the Planner for a given category: generates and writes one
+ * proposal file per unique subject pair in that category. Returns the
+ * full batch so the caller (the pipeline runner) knows every battle to
+ * process next.
  */
-function runPlanner(category: string, proposalsDir: string): { slug: string; proposalPath: string } {
-  const entry = selectEntry(category);
-  const slug = slugFor(entry);
-  const proposal = buildProposal(entry);
+function runPlannerBatch(
+  category: string,
+  proposalsDir: string
+): { slug: string; proposalPath: string; subjectA: string; subjectB: string }[] {
+  const entry = selectCategory(category);
+  const pairs = buildPairs(entry.subjects);
 
-  if (!fs.existsSync(proposalsDir)) {
-    fs.mkdirSync(proposalsDir, { recursive: true });
-  }
+  ensureDir(proposalsDir);
 
-  const proposalPath = path.join(proposalsDir, `${slug}.json`);
-  fs.writeFileSync(proposalPath, JSON.stringify(proposal, null, 2) + "\n");
-
-  return { slug, proposalPath };
+  return pairs.map((pair) => {
+    const slug = slugFor(pair);
+    const proposal = buildProposal(pair, entry.category);
+    const proposalPath = path.join(proposalsDir, `${slug}.json`);
+    writeJSON(proposalPath, proposal);
+    return { slug, proposalPath, subjectA: pair.subjectA, subjectB: pair.subjectB };
+  });
 }
 
-module.exports = { runPlanner, selectEntry, buildProposal, slugFor, slugify };
+module.exports = {
+  runPlannerBatch,
+  selectCategory,
+  buildPairs,
+  buildProposal,
+  slugFor,
+  slugify,
+};

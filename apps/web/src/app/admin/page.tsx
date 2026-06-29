@@ -28,24 +28,81 @@ function exists(p: string): boolean {
   }
 }
 
+function readReview(battleDir: string): { overall: number; approved: boolean } | null {
+  try {
+    const raw = fs.readFileSync(path.join(battleDir, "review.json"), "utf-8");
+    const parsed = JSON.parse(raw);
+    return { overall: parsed.overall, approved: parsed.approved };
+  } catch {
+    return null;
+  }
+}
+
+type ConsumerStatus = "pending" | "done" | "approved" | "rejected" | "unknown";
+
+function readConsumerStatus(battleDir: string, key: string): ConsumerStatus {
+  try {
+    const raw = fs.readFileSync(path.join(battleDir, "status.json"), "utf-8");
+    const parsed = JSON.parse(raw);
+    return parsed?.[key]?.status ?? "unknown";
+  } catch {
+    return "unknown";
+  }
+}
+
+type LatestReport = {
+  category: string;
+  finishedAt: string;
+  totalBattles: number;
+  approved: number;
+  rejected: number;
+  averageScore: number;
+} | null;
+
+function readLatestReport(reportsDir: string): LatestReport {
+  try {
+    const files = fs.readdirSync(reportsDir).filter((f: string) => f.endsWith(".json"));
+    if (files.length === 0) return null;
+    // File names are prefixed with an ISO-ish timestamp, so lexical sort
+    // order matches chronological order.
+    const latest = files.sort().at(-1)!;
+    const raw = fs.readFileSync(path.join(reportsDir, latest), "utf-8");
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
 export default function AdminPage() {
   const proposalsDir = path.join(OUTPUT_DIR, "proposals");
   const battlesDir = path.join(OUTPUT_DIR, "battles");
   const publishedDir = path.join(OUTPUT_DIR, "published");
   const reportsDir = path.join(OUTPUT_DIR, "reports");
 
-  const battles: AdminBattleRow[] = comparisons.map((c) => ({
-    slug: c.id,
-    title: `${c.subjectA.name} vs ${c.subjectB.name}`,
-    category: c.category,
-    websiteUrl: `/battle/${c.id}`,
-    subjectASlug: slugify(c.subjectA.name),
-    subjectBSlug: slugify(c.subjectB.name),
-    subjectAName: c.subjectA.name,
-    subjectBName: c.subjectB.name,
-    hasProposal: exists(path.join(proposalsDir, `${c.id}.json`)),
-    hasPackage: exists(path.join(battlesDir, c.id)),
-  }));
+  const battles: AdminBattleRow[] = comparisons.map((c) => {
+    const battleDir = path.join(battlesDir, c.id);
+    const review = readReview(battleDir);
+    const packageGenerated = exists(path.join(publishedDir, c.id));
+
+    return {
+      slug: c.id,
+      title: `${c.subjectA.name} vs ${c.subjectB.name}`,
+      category: c.category,
+      websiteUrl: `/battle/${c.id}`,
+      subjectASlug: slugify(c.subjectA.name),
+      subjectBSlug: slugify(c.subjectB.name),
+      subjectAName: c.subjectA.name,
+      subjectBName: c.subjectB.name,
+      hasProposal: exists(path.join(proposalsDir, `${c.id}.json`)),
+      hasPackage: exists(battleDir),
+      reviewScore: review?.overall ?? null,
+      reviewApproved: review?.approved ?? null,
+      websiteStatus: readConsumerStatus(battleDir, "website"),
+      publisherStatus: readConsumerStatus(battleDir, "publisher"),
+      packageGenerated,
+      readyForPublication: review?.approved === true,
+    };
+  });
 
   const factoryCounts = {
     proposals: countEntries(proposalsDir),
@@ -53,6 +110,8 @@ export default function AdminPage() {
     published: countEntries(publishedDir),
     reports: countEntries(reportsDir),
   };
+
+  const latestReport = readLatestReport(reportsDir);
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-4xl flex-col gap-8 px-6 py-10">
@@ -81,6 +140,29 @@ export default function AdminPage() {
 
       <section className="space-y-3">
         <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
+          Reports
+        </h2>
+        {latestReport ? (
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <FactoryStat
+              label="Last execution"
+              value={new Date(latestReport.finishedAt).toLocaleString()}
+            />
+            <FactoryStat label="Approved" value={latestReport.approved} />
+            <FactoryStat label="Rejected" value={latestReport.rejected} />
+            <FactoryStat label="Average score" value={latestReport.averageScore} />
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            No pipeline run reports yet. Run{" "}
+            <code className="rounded bg-muted px-1">node scripts/run-pipeline.ts &lt;category&gt;</code>{" "}
+            to generate one.
+          </p>
+        )}
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
           Battles
         </h2>
         <AdminBattleTable battles={battles} />
@@ -89,7 +171,7 @@ export default function AdminPage() {
   );
 }
 
-function FactoryStat({ label, value }: { label: string; value: number }) {
+function FactoryStat({ label, value }: { label: string; value: number | string }) {
   return (
     <div className="rounded-2xl border p-4 text-center">
       <p className="text-2xl font-bold">{value}</p>

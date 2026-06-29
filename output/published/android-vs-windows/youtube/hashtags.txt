@@ -1,0 +1,6 @@
+#AndroidVsWindows
+#TeamAndroid
+#TeamWindows
+#Technology
+#PickASide
+#OpinionPlatform

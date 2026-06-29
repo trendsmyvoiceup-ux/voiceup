@@ -1,0 +1,6 @@
+#AndroidVsmacOS
+#TeamAndroid
+#TeammacOS
+#Technology
+#PickASide
+#OpinionPlatform

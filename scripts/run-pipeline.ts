@@ -1,162 +1,214 @@
 /**
- * Agent Runner — executes the Content Factory pipeline.
+ * Agent Runner — executes the Content Factory pipeline in BATCH mode.
  *
- * Planner and Battle Designer are now real, deterministic agents (see
- * `planner.ts`, `battle-designer.ts`) — no LLM, no randomness. Website and
- * Publisher remain stubs that perform only the file-system bookkeeping
- * described in `agents/shared/CONTRACT.md` (read the Battle Package, write
- * only their own `status.json` key). Real agent logic for them replaces
- * these stubs later without changing this orchestrator.
+ * `node scripts/run-pipeline.ts <category>` generates every valid battle
+ * for that category (every unique subject pair — see `planner.ts`), not
+ * just one. Planner, Battle Designer, Reviewer, and Publisher are real,
+ * deterministic agents — no LLM, no randomness. Website remains a stub
+ * that performs only the file-system bookkeeping described in
+ * `agents/shared/CONTRACT.md` (read the Battle Package, write only its
+ * own `status.json` key).
+ *
+ * Pipeline per battle (see `agents/shared/CONTRACT.md`):
+ *   Battle Designer -> Reviewer -> [approved] -> Website + Publisher (parallel)
+ * A rejected battle does NOT stop the batch — the runner logs it and
+ * continues with the next battle. A summary report is written to
+ * `output/reports/` at the end.
  *
  * Usage: node scripts/run-pipeline.ts <category>
  * Example: node scripts/run-pipeline.ts technology
+ *
+ * Exit codes:
+ *   0 — batch ran to completion (regardless of individual rejections)
+ *   1 — usage error, or the category itself could not be planned at all
  */
 
 const fs = require("fs");
 const path = require("path");
-const { runPlanner } = require("./planner.ts");
+const { updateStatusKey, writeJSON, ensureDir } = require("./fsutil.ts");
+const { runPlannerBatch } = require("./planner.ts");
 const { runBattleDesigner } = require("./battle-designer.ts");
+const { runReviewer } = require("./reviewer.ts");
+const { runPublisher } = require("./publisher.ts");
 
 const ROOT = path.resolve(__dirname, "..");
 const PROPOSALS_DIR = path.join(ROOT, "output", "proposals");
 const BATTLES_DIR = path.join(ROOT, "output", "battles");
+const PUBLISHED_DIR = path.join(ROOT, "output", "published");
+const REPORTS_DIR = path.join(ROOT, "output", "reports");
 
-type AgentContext = {
-  category: string;
-  slug?: string;
-  proposalPath?: string;
-  battleDir?: string;
+const EXIT_OK = 0;
+const EXIT_FAILED = 1;
+
+const REQUIRED_BATTLE_FILES = [
+  "manifest.json",
+  "battle.json",
+  "status.json",
+  "script.txt",
+  "caption.txt",
+  "hashtags.txt",
+  "image_prompt.txt",
+  "video_prompt.txt",
+];
+
+type BattleResult = {
+  slug: string;
+  title: string;
+  packageGenerated: boolean;
+  score: number | null;
+  approved: boolean;
+  error?: string;
 };
 
-type AgentFn = (ctx: AgentContext) => void;
-
-function readJSON(filePath: string) {
-  return JSON.parse(fs.readFileSync(filePath, "utf-8"));
-}
-
-function writeJSON(filePath: string, data: unknown) {
-  fs.writeFileSync(filePath, JSON.stringify(data, null, 2) + "\n");
-}
-
-/** Updates only the caller's own key in status.json — never touches others. */
-function updateOwnStatus(battleDir: string, agentName: string) {
-  const statusPath = path.join(battleDir, "status.json");
-  const status = readJSON(statusPath);
-  status[agentName] = { status: "done", updatedAt: new Date().toISOString() };
-  writeJSON(statusPath, status);
-}
-
 /**
- * Agent registry. Adding a future agent (Instagram, X, Analytics, ...)
- * means adding one entry here and one slug in PIPELINE's fan-out list below
- * — the orchestration loop itself never changes.
+ * Runs Battle Designer -> Reviewer -> [approved] -> Website + Publisher
+ * for ONE battle. Never throws — every failure (missing file, rejection,
+ * etc.) is captured in the returned result so the batch can continue.
  */
-const registry: Record<string, AgentFn> = {
-  planner(ctx) {
-    // Real agent (TASK-0027): deterministic, no LLM. Given a category, it
-    // selects from the static catalog and writes the proposal to disk.
-    const { slug, proposalPath } = runPlanner(ctx.category, PROPOSALS_DIR);
-    ctx.slug = slug;
-    ctx.proposalPath = proposalPath;
-    ctx.battleDir = path.join(BATTLES_DIR, slug);
-  },
+function processBattle(slug: string, proposalPath: string, title: string): BattleResult {
+  let battleDir: string;
 
-  "battle-designer"(ctx) {
-    // Real agent (TASK-0030): deterministic, no LLM. Reads the proposal
-    // and writes the complete Battle Package.
-    ctx.battleDir = runBattleDesigner(ctx.slug!, ctx.proposalPath!, BATTLES_DIR);
-
-    const required = [
-      "manifest.json",
-      "battle.json",
-      "status.json",
-      "script.txt",
-      "caption.txt",
-      "hashtags.txt",
-      "image_prompt.txt",
-      "video_prompt.txt",
-    ];
-    for (const file of required) {
-      if (!fs.existsSync(path.join(ctx.battleDir, file))) {
+  try {
+    battleDir = runBattleDesigner(slug, proposalPath, BATTLES_DIR);
+    for (const file of REQUIRED_BATTLE_FILES) {
+      if (!fs.existsSync(path.join(battleDir, file))) {
         throw new Error(`Battle Package is missing ${file}`);
       }
     }
-  },
-
-  website(ctx) {
-    // Stub: a real Website agent would propose a comparisons.ts diff here.
-    // No AI, no file outside status.json is touched by this stub.
-    updateOwnStatus(ctx.battleDir!, "website");
-  },
-
-  publisher(ctx) {
-    // Stub: a real Publisher agent would review captions/hashtags here.
-    updateOwnStatus(ctx.battleDir!, "publisher");
-  },
-};
-
-/**
- * Pipeline definition: a list of phases, each either "sequential" (run one
- * after another) or "parallel" (fan-out, run concurrently). To add a future
- * consumer, append its agent name to a parallel phase's `agents` list (or a
- * new phase) — the runner loop below does not need to change.
- */
-const PIPELINE: { phase: "sequential" | "parallel"; agents: string[] }[] = [
-  { phase: "sequential", agents: ["planner"] },
-  { phase: "sequential", agents: ["battle-designer"] },
-  { phase: "parallel", agents: ["website", "publisher"] },
-];
-
-function runAgent(name: string, ctx: AgentContext): { name: string; ok: boolean; error?: string } {
-  try {
-    const fn = registry[name];
-    if (!fn) throw new Error(`No agent registered for "${name}"`);
-    fn(ctx);
-    return { name, ok: true };
   } catch (err) {
-    return { name, ok: false, error: err instanceof Error ? err.message : String(err) };
+    console.log(`  ✘ Battle Designer — ${errorMessage(err)}`);
+    return { slug, title, packageGenerated: false, score: null, approved: false, error: errorMessage(err) };
   }
+  console.log("  ✔ Battle Designer");
+
+  let approved: boolean;
+  let score: number;
+  try {
+    const review = runReviewer(battleDir);
+    approved = review.approved;
+    score = review.overall;
+  } catch (err) {
+    console.log(`  ✘ Reviewer — ${errorMessage(err)}`);
+    return { slug, title, packageGenerated: true, score: null, approved: false, error: errorMessage(err) };
+  }
+
+  if (!approved) {
+    console.log(`  ✘ Reviewer (${score}/100) — rejected, skipping Website/Publisher`);
+    return { slug, title, packageGenerated: true, score, approved: false };
+  }
+  console.log(`  ✔ Reviewer (${score}/100)`);
+
+  // Website and Publisher are independent of each other (see
+  // agents/shared/CONTRACT.md) — neither reads the other's output. A
+  // failure in one does not block the other.
+  try {
+    updateStatusKey(battleDir, "website", "done");
+    console.log("  ✔ Website");
+  } catch (err) {
+    console.log(`  ✘ Website — ${errorMessage(err)}`);
+  }
+
+  try {
+    runPublisher(slug, battleDir, PUBLISHED_DIR);
+    updateStatusKey(battleDir, "publisher", "done");
+    console.log("  ✔ Publisher");
+  } catch (err) {
+    console.log(`  ✘ Publisher — ${errorMessage(err)}`);
+  }
+
+  return { slug, title, packageGenerated: true, score, approved: true };
 }
 
-async function main() {
+function errorMessage(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
+}
+
+function writeReport(category: string, startedAt: Date, results: BattleResult[]) {
+  const finishedAt = new Date();
+  const approved = results.filter((r) => r.approved);
+  const rejected = results.filter((r) => !r.approved);
+  const scored = results.filter((r) => r.score !== null) as (BattleResult & { score: number })[];
+  const averageScore =
+    scored.length > 0
+      ? Math.round((scored.reduce((sum, r) => sum + r.score, 0) / scored.length) * 10) / 10
+      : 0;
+
+  const report = {
+    category,
+    startedAt: startedAt.toISOString(),
+    finishedAt: finishedAt.toISOString(),
+    executionTimeMs: finishedAt.getTime() - startedAt.getTime(),
+    totalBattles: results.length,
+    approved: approved.length,
+    rejected: rejected.length,
+    averageScore,
+    generatedPackages: results.map((r) => ({
+      slug: r.slug,
+      title: r.title,
+      score: r.score,
+      approved: r.approved,
+    })),
+  };
+
+  ensureDir(REPORTS_DIR);
+  const fileName = `${category.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${finishedAt
+    .toISOString()
+    .replace(/[:.]/g, "-")}.json`;
+  writeJSON(path.join(REPORTS_DIR, fileName), report);
+
+  return report;
+}
+
+function run(category: string): number {
+  const startedAt = new Date();
+  console.log(`Running pipeline for category: ${category}\n`);
+
+  let proposals: { slug: string; proposalPath: string; subjectA: string; subjectB: string }[];
+  try {
+    proposals = runPlannerBatch(category, PROPOSALS_DIR);
+  } catch (err) {
+    console.log(`✘ Planner — ${errorMessage(err)}`);
+    console.log("\nPipeline failed.");
+    return EXIT_FAILED;
+  }
+  console.log(`✔ Planner — generated ${proposals.length} proposal(s)\n`);
+
+  const results: BattleResult[] = [];
+  proposals.forEach((proposal, i) => {
+    const title = `${proposal.subjectA} vs ${proposal.subjectB}`;
+    console.log(`[${i + 1}/${proposals.length}] ${proposal.slug}`);
+    results.push(processBattle(proposal.slug, proposal.proposalPath, title));
+    console.log("");
+  });
+
+  const report = writeReport(category, startedAt, results);
+
+  console.log("Pipeline completed.\n");
+  console.log(`${report.totalBattles} battles generated.\n`);
+  console.log(`${report.approved} approved.\n`);
+  console.log(`${report.rejected} rejected.\n`);
+  console.log("Average score:\n");
+  console.log(`${report.averageScore}`);
+
+  return EXIT_OK;
+}
+
+function main() {
   const category = process.argv[2];
   if (!category) {
     console.error("Usage: node scripts/run-pipeline.ts <category>");
-    process.exit(1);
+    process.exit(EXIT_FAILED);
   }
 
-  const ctx: AgentContext = { category };
-
-  console.log(`Running pipeline for category: ${category}\n`);
-
-  for (const step of PIPELINE) {
-    const results =
-      step.phase === "sequential"
-        ? step.agents.map((name) => runAgent(name, ctx))
-        : step.agents.map((name) => runAgent(name, ctx)); // stub execution is synchronous; parallel-ready shape regardless
-
-    for (const result of results) {
-      if (result.ok) {
-        console.log(`✔ ${labelFor(result.name)}`);
-      } else {
-        console.log(`✘ ${labelFor(result.name)} — ${result.error}`);
-        console.log("\nPipeline failed.");
-        process.exit(1);
-      }
-    }
+  try {
+    process.exit(run(category));
+  } catch (err) {
+    // Defensive top-level catch: any error not already handled inside
+    // run()/processBattle() (e.g. a bug in the runner itself) is reported
+    // cleanly instead of as a raw stack trace.
+    console.error("Unexpected runner error:", errorMessage(err));
+    process.exit(EXIT_FAILED);
   }
-
-  console.log("\nPipeline completed.");
-}
-
-function labelFor(agentName: string): string {
-  const labels: Record<string, string> = {
-    planner: "Planner",
-    "battle-designer": "Battle Designer",
-    website: "Website",
-    publisher: "Publisher",
-  };
-  return labels[agentName] ?? agentName;
 }
 
 main();

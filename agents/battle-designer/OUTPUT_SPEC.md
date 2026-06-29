@@ -9,8 +9,9 @@ single source of truth for this battle. Contains exactly:
 - `battle.json` — matches `Comparison`/`Subject` shape in
   `apps/web/src/lib/comparisons.ts`
 - `status.json` — `{ "<consumerName>": { "status": "pending", "updatedAt": null }, ... }`,
-  one independent key per consumer (`website`, `publisher`, and any future
-  consumer). Each consumer writes only its own key.
+  initialized with one independent key per consumer (`reviewer`, `website`,
+  `publisher`, and any future consumer). Each consumer writes only its own
+  key.
 - `script.txt`
 - `caption.txt`
 - `hashtags.txt`

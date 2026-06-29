@@ -1,0 +1,6 @@
+#WindowsVsmacOS
+#TeamWindows
+#TeammacOS
+#Technology
+#PickASide
+#OpinionPlatform

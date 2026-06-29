@@ -1,0 +1,15 @@
+{
+  "id": "apple-vs-linux",
+  "subjectA": {
+    "name": "Apple",
+    "mediaLabel": "Apple",
+    "mediaHint": "Technology"
+  },
+  "subjectB": {
+    "name": "Linux",
+    "mediaLabel": "Linux",
+    "mediaHint": "Technology"
+  },
+  "category": "Technology",
+  "visualTheme": "tech"
+}

@@ -1,0 +1,15 @@
+{
+  "id": "android-vs-macos",
+  "subjectA": {
+    "name": "Android",
+    "mediaLabel": "Android",
+    "mediaHint": "Technology"
+  },
+  "subjectB": {
+    "name": "macOS",
+    "mediaLabel": "macOS",
+    "mediaHint": "Technology"
+  },
+  "category": "Technology",
+  "visualTheme": "tech"
+}

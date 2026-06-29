@@ -1,0 +1,8 @@
+NOTE: Video generation is out of scope for this version. This file is a
+placeholder for the future video generation step.
+
+Intended prompt (not yet executed): A 6-10 second vertical video opening
+on the split-screen VS composition for Apple vs Android, with the
+two sides subtly pulsing, ending on a clear call-to-action frame directing
+the viewer to tap the link and vote. No real brand logos or copyrighted
+footage.

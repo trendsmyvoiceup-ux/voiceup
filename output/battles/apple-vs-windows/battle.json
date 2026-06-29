@@ -1,0 +1,15 @@
+{
+  "id": "apple-vs-windows",
+  "subjectA": {
+    "name": "Apple",
+    "mediaLabel": "Apple",
+    "mediaHint": "Technology"
+  },
+  "subjectB": {
+    "name": "Windows",
+    "mediaLabel": "Windows",
+    "mediaHint": "Technology"
+  },
+  "category": "Technology",
+  "visualTheme": "tech"
+}

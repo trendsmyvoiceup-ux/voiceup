@@ -15,6 +15,12 @@ export type AdminBattleRow = {
   subjectBName: string;
   hasProposal: boolean;
   hasPackage: boolean;
+  reviewScore: number | null;
+  reviewApproved: boolean | null;
+  websiteStatus: string;
+  publisherStatus: string;
+  packageGenerated: boolean;
+  readyForPublication: boolean;
 };
 
 type Status = "draft" | "ready" | "paused" | "archived";
@@ -62,14 +68,34 @@ export function AdminBattleTable({ battles }: { battles: AdminBattleRow[] }) {
               <StatusBadge status={status} />
             </div>
 
-            <div className="mt-3 flex flex-wrap gap-x-6 gap-y-1 text-xs text-muted-foreground">
-              <span>
-                Proposal: {battle.hasProposal ? "exists" : "missing"}
-              </span>
-              <span>
-                Publisher package: {battle.hasPackage ? "exists" : "missing"}
-              </span>
-            </div>
+            {/* Content Factory dashboard fields — read-only, no editing. */}
+            <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1 text-xs sm:grid-cols-4">
+              <Field label="Proposal" value={battle.hasProposal ? "Exists" : "Missing"} />
+              <Field
+                label="Reviewer score"
+                value={battle.reviewScore !== null ? `${battle.reviewScore}/100` : "Not reviewed"}
+              />
+              <Field
+                label="Approved"
+                value={
+                  battle.reviewApproved === null
+                    ? "Not reviewed"
+                    : battle.reviewApproved
+                      ? "Yes"
+                      : "No"
+                }
+              />
+              <Field label="Website status" value={capitalize(battle.websiteStatus)} />
+              <Field label="Publisher status" value={capitalize(battle.publisherStatus)} />
+              <Field
+                label="Publication package"
+                value={battle.packageGenerated ? "Generated" : "Not generated"}
+              />
+              <Field
+                label="Ready to publish"
+                value={battle.readyForPublication ? "Yes" : "No"}
+              />
+            </dl>
 
             <div className="mt-3 flex flex-wrap gap-2">
               {STATUSES.map((s) => (
@@ -110,6 +136,19 @@ export function AdminBattleTable({ battles }: { battles: AdminBattleRow[] }) {
       })}
     </div>
   );
+}
+
+function Field({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <dt className="text-[10px] uppercase tracking-widest text-muted-foreground">{label}</dt>
+      <dd className="font-medium">{value}</dd>
+    </div>
+  );
+}
+
+function capitalize(s: string): string {
+  return s.length === 0 ? s : s.charAt(0).toUpperCase() + s.slice(1);
 }
 
 function StatusBadge({ status }: { status: Status }) {

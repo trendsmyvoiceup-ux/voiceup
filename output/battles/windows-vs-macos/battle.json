@@ -1,0 +1,15 @@
+{
+  "id": "windows-vs-macos",
+  "subjectA": {
+    "name": "Windows",
+    "mediaLabel": "Windows",
+    "mediaHint": "Technology"
+  },
+  "subjectB": {
+    "name": "macOS",
+    "mediaLabel": "macOS",
+    "mediaHint": "Technology"
+  },
+  "category": "Technology",
+  "visualTheme": "tech"
+}

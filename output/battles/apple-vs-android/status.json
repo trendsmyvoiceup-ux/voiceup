@@ -1,10 +1,14 @@
 {
+  "reviewer": {
+    "status": "approved",
+    "updatedAt": "2026-06-29T21:28:37.297Z"
+  },
   "website": {
     "status": "done",
-    "updatedAt": "2026-06-29T20:40:57.436Z"
+    "updatedAt": "2026-06-29T21:28:37.297Z"
   },
   "publisher": {
     "status": "done",
-    "updatedAt": "2026-06-29T20:40:57.438Z"
+    "updatedAt": "2026-06-29T21:28:37.297Z"
   }
 }

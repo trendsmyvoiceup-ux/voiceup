@@ -1,0 +1,16 @@
+{
+  "overall": 100,
+  "approved": true,
+  "checks": {
+    "completeness": true,
+    "jsonFiles": true,
+    "duplicates": true,
+    "metadata": true,
+    "slug": true,
+    "title": true,
+    "caption": true,
+    "hashtags": true,
+    "prompts": true
+  },
+  "reviewedAt": "2026-06-29T21:28:37.304Z"
+}

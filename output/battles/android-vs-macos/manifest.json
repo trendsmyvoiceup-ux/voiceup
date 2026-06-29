@@ -1,0 +1,15 @@
+{
+  "slug": "android-vs-macos",
+  "schemaVersion": 1,
+  "createdFrom": "proposals/android-vs-macos.json",
+  "files": [
+    "manifest.json",
+    "battle.json",
+    "status.json",
+    "script.txt",
+    "caption.txt",
+    "hashtags.txt",
+    "image_prompt.txt",
+    "video_prompt.txt"
+  ]
+}

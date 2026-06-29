@@ -34,6 +34,8 @@ Designer reads `output/proposals/<slug>.json` independently.
 ## Implementation note
 
 As of TASK-0027, this is a real, executable agent (`scripts/planner.ts`),
-not a stub. Given a category name, it deterministically selects from the
-static subject catalog (`scripts/catalog.ts`) and writes the proposal —
-no LLM, no randomness, same input always produces the same output.
+not a stub. As of the Content Validation sprint, it generates a **batch**:
+given a category name, it writes one proposal for every unique unordered
+subject pair in that category's catalog entry (`scripts/catalog.ts`), not
+just one — e.g. 5 Technology subjects produce 10 proposals. No LLM, no
+randomness; the same input always produces the same set of proposals.

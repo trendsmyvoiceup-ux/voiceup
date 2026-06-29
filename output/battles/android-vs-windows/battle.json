@@ -1,0 +1,15 @@
+{
+  "id": "android-vs-windows",
+  "subjectA": {
+    "name": "Android",
+    "mediaLabel": "Android",
+    "mediaHint": "Technology"
+  },
+  "subjectB": {
+    "name": "Windows",
+    "mediaLabel": "Windows",
+    "mediaHint": "Technology"
+  },
+  "category": "Technology",
+  "visualTheme": "tech"
+}

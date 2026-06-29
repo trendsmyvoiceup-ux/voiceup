@@ -1,0 +1,15 @@
+{
+  "id": "macos-vs-linux",
+  "subjectA": {
+    "name": "macOS",
+    "mediaLabel": "macOS",
+    "mediaHint": "Technology"
+  },
+  "subjectB": {
+    "name": "Linux",
+    "mediaLabel": "Linux",
+    "mediaHint": "Technology"
+  },
+  "category": "Technology",
+  "visualTheme": "tech"
+}

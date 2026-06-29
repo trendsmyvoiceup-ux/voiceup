@@ -7,6 +7,10 @@
 handoff (see `agents/shared/CONTRACT.md`) — there is no in-memory or
 conversational alternative.
 
+Given a category, the Planner writes **one file per unique unordered
+subject pair** in that category — a batch, not a single proposal. For a
+category with `n` subjects, that's `n × (n-1) / 2` files in one run.
+
 ## Output shape
 
 ```json

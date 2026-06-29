@@ -1,0 +1,15 @@
+{
+  "id": "windows-vs-linux",
+  "subjectA": {
+    "name": "Windows",
+    "mediaLabel": "Windows",
+    "mediaHint": "Technology"
+  },
+  "subjectB": {
+    "name": "Linux",
+    "mediaLabel": "Linux",
+    "mediaHint": "Technology"
+  },
+  "category": "Technology",
+  "visualTheme": "tech"
+}
