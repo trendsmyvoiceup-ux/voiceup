@@ -3,12 +3,12 @@
   "subjectA": {
     "name": "Apple",
     "mediaLabel": "Apple",
-    "mediaHint": "Smartphone ecosystem"
+    "mediaHint": "Technology"
   },
   "subjectB": {
     "name": "Android",
     "mediaLabel": "Android",
-    "mediaHint": "Smartphone ecosystem"
+    "mediaHint": "Technology"
   },
   "category": "Technology",
   "visualTheme": "tech"

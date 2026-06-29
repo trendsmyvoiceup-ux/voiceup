@@ -1,7 +1,7 @@
 {
   "slug": "apple-vs-android",
   "schemaVersion": 1,
-  "createdFrom": "output/proposals/apple-vs-android.json",
+  "createdFrom": "proposals/apple-vs-android.json",
   "files": [
     "manifest.json",
     "battle.json",

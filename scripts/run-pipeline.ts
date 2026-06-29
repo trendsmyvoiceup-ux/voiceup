@@ -1,12 +1,12 @@
 /**
  * Agent Runner — executes the Content Factory pipeline.
  *
- * The Planner is now a real, deterministic agent (see `planner.ts`) — no
- * LLM, no randomness. Battle Designer, Website, and Publisher remain
- * stubs that perform only the file-system bookkeeping described in
- * `agents/shared/CONTRACT.md` (read the Battle Package, write only their
- * own `status.json` key). Real agent logic for them replaces these stubs
- * later without changing this orchestrator.
+ * Planner and Battle Designer are now real, deterministic agents (see
+ * `planner.ts`, `battle-designer.ts`) — no LLM, no randomness. Website and
+ * Publisher remain stubs that perform only the file-system bookkeeping
+ * described in `agents/shared/CONTRACT.md` (read the Battle Package, write
+ * only their own `status.json` key). Real agent logic for them replaces
+ * these stubs later without changing this orchestrator.
  *
  * Usage: node scripts/run-pipeline.ts <category>
  * Example: node scripts/run-pipeline.ts technology
@@ -15,6 +15,7 @@
 const fs = require("fs");
 const path = require("path");
 const { runPlanner } = require("./planner.ts");
+const { runBattleDesigner } = require("./battle-designer.ts");
 
 const ROOT = path.resolve(__dirname, "..");
 const PROPOSALS_DIR = path.join(ROOT, "output", "proposals");
@@ -61,9 +62,10 @@ const registry: Record<string, AgentFn> = {
   },
 
   "battle-designer"(ctx) {
-    if (!fs.existsSync(ctx.battleDir!)) {
-      throw new Error(`Battle Package missing: ${ctx.battleDir}`);
-    }
+    // Real agent (TASK-0030): deterministic, no LLM. Reads the proposal
+    // and writes the complete Battle Package.
+    ctx.battleDir = runBattleDesigner(ctx.slug!, ctx.proposalPath!, BATTLES_DIR);
+
     const required = [
       "manifest.json",
       "battle.json",
@@ -75,12 +77,10 @@ const registry: Record<string, AgentFn> = {
       "video_prompt.txt",
     ];
     for (const file of required) {
-      if (!fs.existsSync(path.join(ctx.battleDir!, file))) {
+      if (!fs.existsSync(path.join(ctx.battleDir, file))) {
         throw new Error(`Battle Package is missing ${file}`);
       }
     }
-    // Stub: no content is generated here. A real Battle Designer agent
-    // would write the package; this runner assumes it already exists.
   },
 
   website(ctx) {
