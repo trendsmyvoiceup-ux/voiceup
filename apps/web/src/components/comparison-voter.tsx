@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Button, buttonVariants } from "@/components/ui/button";
-import { comparisons, type Comparison } from "@/lib/comparisons";
+import { comparisons, type Comparison, type Subject, type VisualTheme } from "@/lib/comparisons";
+import { BattleVisual } from "@/components/battle-visual";
 import { cn } from "@/lib/utils";
 
 type Tally = { a: number; b: number };
@@ -38,10 +38,23 @@ export function ComparisonVoter({ comparison }: { comparison: Comparison }) {
   const total = tally.a + tally.b;
   const pctA = total > 0 ? Math.round((tally.a / total) * 100) : 0;
   const pctB = total > 0 ? 100 - pctA : 0;
-  const hasVoted = voted[comparison.id] !== undefined;
+  const myVote = voted[comparison.id];
+  const hasVoted = myVote !== undefined;
 
   const currentIndex = comparisons.findIndex((c) => c.id === comparison.id);
   const next = comparisons[(currentIndex + 1) % comparisons.length];
+
+  const confetti = useMemo(
+    () =>
+      Array.from({ length: 10 }, (_, i) => ({
+        id: i,
+        dx: `${Math.round((Math.random() - 0.5) * 160)}px`,
+        dy: `${-(80 + Math.random() * 100)}px`,
+        delay: `${Math.random() * 150}ms`,
+        left: `${10 + Math.random() * 80}%`,
+      })),
+    [myVote] // eslint-disable-line react-hooks/exhaustive-deps
+  );
 
   function castVote(side: "a" | "b") {
     if (hasVoted) return;
@@ -76,7 +89,7 @@ export function ComparisonVoter({ comparison }: { comparison: Comparison }) {
 
   async function share() {
     const url = battleUrl();
-    const title = `${comparison.optionA} vs ${comparison.optionB}`;
+    const title = `${comparison.subjectA.name} vs ${comparison.subjectB.name}`;
     if (typeof navigator !== "undefined" && navigator.share) {
       try {
         await navigator.share({ title, url });
@@ -89,65 +102,162 @@ export function ComparisonVoter({ comparison }: { comparison: Comparison }) {
   }
 
   if (!hydrated) {
-    return null;
+    return <div className="h-full w-full bg-black" />;
   }
 
   return (
-    <div className="flex w-full max-w-md flex-col items-center gap-6 rounded-xl border p-6 text-center">
-      <div className="grid w-full grid-cols-2 gap-4">
-        <Button
-          variant={hasVoted ? "outline" : "default"}
+    <div className="relative flex h-full w-full select-none flex-col overflow-hidden bg-black text-white">
+      {/* Category badge: reinforces that this screen is a self-contained,
+          shareable "battle asset", not just a generic voting form. */}
+      <div className="pointer-events-none absolute left-0 right-0 top-3 z-10 flex justify-center">
+        <span className="rounded-full border border-white/15 bg-black/40 px-3 py-1 text-[11px] font-semibold uppercase tracking-widest text-white/60 backdrop-blur-sm">
+          {comparison.category}
+        </span>
+      </div>
+
+      {/* Two halves create visual tension between the choices. Winning
+          side grows after a vote; losing side recedes. */}
+      <div className="flex flex-1 flex-col sm:flex-row">
+        <OptionZone
+          subject={comparison.subjectA}
+          theme={comparison.visualTheme}
+          gradient="from-indigo-950 via-indigo-900 to-black"
+          active={myVote === "a"}
+          dimmed={hasVoted && myVote !== "a"}
+          percentage={hasVoted ? pctA : null}
+          onSelect={() => castVote("a")}
           disabled={hasVoted}
-          onClick={() => castVote("a")}
-          className="h-16 text-lg"
-        >
-          {comparison.optionA}
-        </Button>
-        <Button
-          variant={hasVoted ? "outline" : "default"}
+        />
+        <OptionZone
+          subject={comparison.subjectB}
+          theme={comparison.visualTheme}
+          gradient="from-rose-950 via-rose-900 to-black"
+          active={myVote === "b"}
+          dimmed={hasVoted && myVote !== "b"}
+          percentage={hasVoted ? pctB : null}
+          onSelect={() => castVote("b")}
           disabled={hasVoted}
-          onClick={() => castVote("b")}
-          className="h-16 text-lg"
-        >
-          {comparison.optionB}
-        </Button>
+        />
       </div>
 
-      <div className="w-full space-y-2">
-        <div className="flex justify-between text-sm text-muted-foreground">
-          <span>
-            {comparison.optionA}: {pctA}%
-          </span>
-          <span>
-            {comparison.optionB}: {pctB}%
-          </span>
+      {/* The VS moment: the emotional center of the screen. */}
+      <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+        <div className="vs-badge flex h-16 w-16 items-center justify-center rounded-full border border-white/20 bg-black/60 text-lg font-black tracking-widest backdrop-blur-sm sm:h-20 sm:w-20 sm:text-xl">
+          VS
         </div>
-        <div className="flex h-2 w-full overflow-hidden rounded-full bg-muted">
-          <div className="h-full bg-foreground" style={{ width: `${pctA}%` }} />
+      </div>
+
+      {/* Delight after voting: a brief confetti burst around the badge. */}
+      {hasVoted && (
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+          {confetti.map((c) => (
+            <span
+              key={c.id}
+              className="confetti-dot absolute h-1.5 w-1.5 rounded-full bg-white"
+              style={
+                {
+                  left: c.left,
+                  top: "50%",
+                  animationDelay: c.delay,
+                  "--dx": c.dx,
+                  "--dy": c.dy,
+                } as React.CSSProperties
+              }
+            />
+          ))}
         </div>
-        <p className="text-sm text-muted-foreground">{total} total votes</p>
-      </div>
+      )}
 
-      <div className="grid w-full grid-cols-2 gap-4">
-        <Button variant="secondary" onClick={copyLink}>
-          {copied ? "Link copied" : "Copy link"}
-        </Button>
-        <Button variant="secondary" onClick={share}>
-          Share
-        </Button>
-      </div>
+      {/* Bottom sheet: appears only after the decision is made. */}
+      {hasVoted && (
+        <div className="sheet-up absolute inset-x-0 bottom-0 flex flex-col items-center gap-4 rounded-t-3xl border-t border-white/10 bg-black/90 px-6 pb-8 pt-5 text-center backdrop-blur">
+          <p className="text-sm font-semibold">
+            Thanks for voting · {total.toLocaleString()} total votes
+          </p>
 
-      <Link
-        href={`/battle/${next.id}`}
-        className={cn(buttonVariants({ variant: "ghost" }), "w-full")}
-      >
-        Next comparison
-      </Link>
+          <div className="flex w-full max-w-sm gap-3">
+            <button
+              onClick={copyLink}
+              className="flex-1 rounded-full border border-white/15 px-4 py-3 text-sm font-medium text-white/80 transition-colors hover:bg-white/10 active:scale-[0.97]"
+            >
+              {copied ? "Copied" : "Copy link"}
+            </button>
+            <button
+              onClick={share}
+              className="flex-1 rounded-full border border-white/15 px-4 py-3 text-sm font-medium text-white/80 transition-colors hover:bg-white/10 active:scale-[0.97]"
+            >
+              Share
+            </button>
+          </div>
 
-      <div className="space-y-1 text-xs text-muted-foreground">
-        <p>Community signal, not a scientific poll.</p>
-        <p>Source: website</p>
-      </div>
+          <Link
+            href={`/battle/${next.id}`}
+            className="w-full max-w-sm rounded-full bg-white px-4 py-3 text-center text-sm font-semibold text-black transition-opacity hover:opacity-90 active:scale-[0.98]"
+          >
+            Next comparison
+          </Link>
+
+          <p className="text-[11px] text-white/40">
+            Community signal, not a scientific poll · Source: website
+          </p>
+        </div>
+      )}
     </div>
+  );
+}
+
+function OptionZone({
+  subject,
+  theme,
+  gradient,
+  active,
+  dimmed,
+  percentage,
+  onSelect,
+  disabled,
+}: {
+  subject: Subject;
+  theme: VisualTheme;
+  gradient: string;
+  active: boolean;
+  dimmed: boolean;
+  percentage: number | null;
+  onSelect: () => void;
+  disabled: boolean;
+}) {
+  return (
+    <button
+      onClick={onSelect}
+      disabled={disabled}
+      className={cn(
+        "group relative flex flex-1 flex-col items-center justify-center gap-4 overflow-hidden bg-gradient-to-br transition-[flex-grow,opacity] duration-500 ease-out",
+        gradient,
+        active ? "flex-[1.4]" : "flex-1",
+        dimmed && "opacity-40"
+      )}
+    >
+      {/* Media rendering is fully delegated to BattleVisual, kept separate
+          from voting logic/state above. */}
+      <BattleVisual subject={subject} theme={theme} />
+
+      <span
+        className={cn(
+          "px-6 text-center text-3xl font-black uppercase tracking-tight drop-shadow-lg transition-transform duration-300 sm:text-5xl",
+          !disabled && "group-active:scale-95"
+        )}
+      >
+        {subject.name}
+      </span>
+      {percentage !== null && (
+        <span className="text-2xl font-bold text-white/90 sm:text-3xl">
+          {percentage}%
+        </span>
+      )}
+      {!disabled && (
+        <span className="absolute bottom-6 text-xs font-medium uppercase tracking-widest text-white/50">
+          Tap to vote
+        </span>
+      )}
+    </button>
   );
 }

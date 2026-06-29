@@ -20,17 +20,15 @@ export default async function BattlePage({
   }
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center gap-6 p-6">
-      <div className="text-center">
-        <h1 className="text-3xl font-bold">
-          {comparison.optionA} vs {comparison.optionB}
-        </h1>
-        <p className="text-muted-foreground">Cast your vote below.</p>
-      </div>
-      <ComparisonVoter comparison={comparison} />
-      <Link href="/" className="text-sm text-muted-foreground hover:underline">
-        ← All battles
+    <main className="relative h-screen w-screen">
+      <Link
+        href="/"
+        aria-label="All battles"
+        className="absolute left-3 top-3 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-black/40 text-white/80 backdrop-blur-sm transition-colors hover:bg-black/60"
+      >
+        ←
       </Link>
+      <ComparisonVoter comparison={comparison} />
     </main>
   );
 }
