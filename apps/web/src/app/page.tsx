@@ -1,33 +1,55 @@
 import Link from "next/link";
 import { getComparisonBySlug } from "@/lib/comparisons";
 import { ComparisonVoter } from "@/components/comparison-voter";
+import { db } from "@/lib/db";
 
-// Fixed featured battle: deterministic on purpose, so the homepage is
-// predictable for testing and social sharing. Not randomized.
+export const dynamic = "force-dynamic";
+
 const FEATURED_SLUG = "apple-vs-android";
 
-export default function Home() {
+async function getTotalSignals(): Promise<number | null> {
+  try {
+    return await db.vote.count();
+  } catch {
+    return null;
+  }
+}
+
+export default async function Home() {
   const featured = getComparisonBySlug(FEATURED_SLUG)!;
+  const totalSignals = await getTotalSignals();
 
   return (
-    <main className="relative flex h-screen w-screen flex-col bg-black">
-      <div className="pointer-events-none absolute left-0 right-0 top-12 z-10 flex justify-center sm:top-16">
-        <span className="rounded-full bg-white px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-black">
-          Add your Voice
-        </span>
-      </div>
-
+    <main className="relative flex h-screen w-screen flex-col bg-[oklch(0.07_0.004_270)]">
       <div className="relative flex-1">
         <ComparisonVoter comparison={featured} />
       </div>
 
-      <div className="flex shrink-0 items-center justify-center gap-6 bg-black py-4 text-sm">
-        <Link href="/category" className="text-white/60 hover:text-white">
-          Continue exploring
-        </Link>
-        <Link href="/battle" className="text-white/60 hover:text-white">
-          More battles
-        </Link>
+      <div className="flex shrink-0 items-center justify-between border-t border-white/6 bg-[oklch(0.07_0.004_270)] px-5 py-3">
+        <div className="flex items-center gap-2">
+          <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-white/50">
+            Human Signal
+          </span>
+          {totalSignals !== null && totalSignals > 0 && (
+            <span className="text-[10px] text-white/22">
+              · {totalSignals.toLocaleString()} signals
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-5">
+          <Link
+            href="/category"
+            className="text-[10px] font-medium uppercase tracking-[0.12em] text-white/30 transition-colors hover:text-white/60"
+          >
+            Categories
+          </Link>
+          <Link
+            href="/battle"
+            className="text-[10px] font-medium uppercase tracking-[0.12em] text-white/30 transition-colors hover:text-white/60"
+          >
+            All battles
+          </Link>
+        </div>
       </div>
     </main>
   );

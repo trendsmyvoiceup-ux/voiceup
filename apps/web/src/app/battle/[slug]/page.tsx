@@ -22,11 +22,13 @@ export default async function BattlePage({
   return (
     <main className="relative h-screen w-screen">
       <Link
-        href="/"
+        href="/battle"
         aria-label="All battles"
-        className="absolute left-3 top-3 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-black/40 text-white/80 backdrop-blur-sm transition-colors hover:bg-black/60"
+        className="absolute left-4 top-4 z-10 flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white/50 backdrop-blur-md transition-all hover:border-white/20 hover:bg-white/10 hover:text-white/90"
       >
-        ←
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden>
+          <path d="M8 1.5L3 6l5 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
       </Link>
       <ComparisonVoter comparison={comparison} />
     </main>

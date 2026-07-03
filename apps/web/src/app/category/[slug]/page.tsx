@@ -6,7 +6,6 @@ import { getCategoryBySlug } from "@/lib/categories";
 export const dynamic = "force-dynamic";
 
 async function getCategoryData(slug: string) {
-  // Derive category title from slug
   const staticCategory = getCategoryBySlug(slug);
   if (!staticCategory) return null;
 
@@ -31,7 +30,6 @@ async function getCategoryData(slug: string) {
 
     return { categoryTitle, subjects, battles, totalVotes };
   } catch {
-    // DB unavailable — return static fallback data
     return {
       categoryTitle,
       subjects: staticCategory.subjects.map((s) => ({
@@ -62,97 +60,161 @@ export default async function CategoryPage({
   const { categoryTitle, subjects, battles, totalVotes } = data;
   const hasSignal = totalVotes > 0;
 
-  return (
-    <main className="mx-auto flex min-h-screen w-full max-w-2xl flex-col gap-10 px-6 py-12">
-      <Link href="/" className="text-sm text-muted-foreground hover:underline">← Discover</Link>
+  // Compute max score for bar normalization
+  const maxScore = subjects.reduce(
+    (m, s) => Math.max(m, s.signalSnapshot?.score ?? 0),
+    0
+  );
 
-      <div>
-        <p className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">Category</p>
-        <h1 className="text-4xl font-bold tracking-tight">{categoryTitle}</h1>
+  return (
+    <main className="mx-auto flex min-h-screen w-full max-w-xl flex-col gap-12 px-5 py-14">
+      <Link
+        href="/category"
+        className="text-xs font-medium uppercase tracking-[0.1em] text-white/30 transition-colors hover:text-white/60"
+      >
+        ← Categories
+      </Link>
+
+      <div className="flex flex-col gap-1">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/30">Category</p>
+        <h1 className="text-3xl font-bold tracking-tight">{categoryTitle}</h1>
+        {hasSignal && (
+          <p className="mt-1 text-sm text-white/30">
+            {totalVotes.toLocaleString()} signals · {subjects.length} subjects · {battles.length} battles
+          </p>
+        )}
       </div>
 
-      {/* Runtime stats */}
-      {hasSignal && (
-        <div className="grid grid-cols-3 gap-3">
-          <StatCard label="Total signals" value={totalVotes.toLocaleString()} />
-          <StatCard label="Subjects" value={subjects.length.toString()} />
-          <StatCard label="Battles" value={battles.length.toString()} />
-        </div>
-      )}
+      {/* Rankings */}
+      <section className="flex flex-col gap-3">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/28">
+          {hasSignal ? "Signal Rankings" : "Subjects"}
+        </p>
 
-      {/* Ranked subjects */}
-      <section className="space-y-3">
-        <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
-          {hasSignal ? "Ranked Subjects" : "Subjects"}
-        </h2>
         {subjects.length > 0 ? (
-          <ol className="space-y-2">
+          <ol className="flex flex-col gap-1.5">
             {subjects.map((subject, i) => {
               const snap = subject.signalSnapshot;
               const hasData = snap && snap.totalSignals > 0;
+              const score = snap ? Math.round(snap.score) : 0;
+              const barWidth = hasData && maxScore > 0 ? (score / maxScore) * 100 : 0;
+              const isFirst = i === 0 && hasData;
+
               return (
                 <li key={subject.slug}>
                   <Link
                     href={`/subject/${subject.slug}`}
-                    className="flex items-center justify-between rounded-2xl border p-4 hover:bg-muted/50"
+                    className="group flex flex-col gap-2 rounded-2xl border border-white/8 bg-white/3 px-5 py-4 transition-all hover:border-white/14 hover:bg-white/6"
                   >
-                    <span className="flex items-center gap-3">
-                      <span className="w-6 text-sm text-muted-foreground">#{i + 1}</span>
-                      <span className="font-medium">{subject.name}</span>
-                    </span>
-                    <span className="text-sm text-muted-foreground">
-                      {hasData ? (
-                        <>Signal {Math.round(snap.score)} · {snap.totalSignals.toLocaleString()} votes</>
-                      ) : (
-                        "No data yet"
-                      )}
-                    </span>
+                    <div className="flex items-center justify-between">
+                      <span className="flex items-center gap-3">
+                        <span
+                          className={`w-5 text-right text-xs tabular-nums font-semibold ${
+                            isFirst ? "text-white/60" : "text-white/20"
+                          }`}
+                        >
+                          {i + 1}
+                        </span>
+                        <span
+                          className={`font-semibold transition-colors group-hover:text-white ${
+                            isFirst ? "text-white/90" : "text-white/75"
+                          }`}
+                        >
+                          {subject.name}
+                        </span>
+                      </span>
+                      <span className="flex items-center gap-2 text-xs tabular-nums">
+                        {hasData ? (
+                          <>
+                            <span className="font-bold text-white/70">{score}</span>
+                            <span className="text-white/20">
+                              · {snap.totalSignals.toLocaleString()}
+                            </span>
+                          </>
+                        ) : (
+                          <span className="text-white/20">—</span>
+                        )}
+                      </span>
+                    </div>
+
+                    {/* Signal strength bar */}
+                    {hasData && (
+                      <div className="ml-8 h-0.5 overflow-hidden rounded-full bg-white/6">
+                        <div
+                          className="h-full rounded-full transition-all duration-700"
+                          style={{
+                            width: `${barWidth}%`,
+                            background: isFirst
+                              ? "rgba(255,255,255,0.45)"
+                              : "rgba(255,255,255,0.2)",
+                          }}
+                        />
+                      </div>
+                    )}
                   </Link>
                 </li>
               );
             })}
           </ol>
         ) : (
-          <p className="text-sm text-muted-foreground">No subjects yet.</p>
+          <EmptyState label="No subjects yet" />
         )}
-        {!hasSignal && (
-          <p className="text-xs text-muted-foreground">Rankings will appear after the first votes are cast.</p>
+
+        {!hasSignal && subjects.length > 0 && (
+          <p className="text-xs text-white/22">
+            Rankings appear after the first signals are cast.
+          </p>
         )}
       </section>
 
       {/* Battles */}
-      <section className="space-y-3">
-        <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">Battles</h2>
+      <section className="flex flex-col gap-3">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/28">Battles</p>
         {battles.length > 0 ? (
-          <div className="grid gap-2">
+          <div className="flex flex-col gap-1.5">
             {battles.map((battle) => (
               <Link
                 key={battle.id}
                 href={`/battle/${battle.slug}`}
-                className="rounded-2xl border p-4 text-center font-medium hover:bg-muted/50"
+                className="group flex items-center justify-between rounded-2xl border border-white/8 bg-white/3 px-5 py-3.5 transition-all hover:border-white/14 hover:bg-white/6"
               >
-                {battle.subjectA.name} <span className="text-muted-foreground">vs</span> {battle.subjectB.name}
+                <span className="font-medium text-white/75 transition-colors group-hover:text-white">
+                  {battle.subjectA.name}{" "}
+                  <span className="text-white/25">vs</span>{" "}
+                  {battle.subjectB.name}
+                </span>
+                <svg
+                  className="h-3.5 w-3.5 text-white/18 transition-colors group-hover:text-white/45"
+                  viewBox="0 0 14 14"
+                  fill="none"
+                >
+                  <path
+                    d="M3 7h8M8 4l3 3-3 3"
+                    stroke="currentColor"
+                    strokeWidth="1.4"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
               </Link>
             ))}
           </div>
         ) : (
-          <div className="grid gap-2">
-            {/* Fallback to static battles if DB empty */}
-            {getCategoryBySlug(slug)?.subjects && (
-              <p className="text-sm text-muted-foreground">No battles in database yet. Run the Content Factory pipeline.</p>
-            )}
-          </div>
+          <EmptyState
+            label="No battles yet"
+            hint="Run the Content Factory pipeline."
+          />
         )}
       </section>
     </main>
   );
 }
 
-function StatCard({ label, value }: { label: string; value: string }) {
+function EmptyState({ label, hint }: { label: string; hint?: string }) {
   return (
-    <div className="rounded-2xl border p-4 text-center">
-      <p className="text-2xl font-bold">{value}</p>
-      <p className="text-xs uppercase tracking-widest text-muted-foreground">{label}</p>
+    <div className="rounded-2xl border border-white/6 bg-white/2 px-5 py-6 text-center">
+      <p className="text-sm font-medium text-white/30">{label}</p>
+      {hint && <p className="mt-1 text-xs text-white/18">{hint}</p>}
     </div>
   );
 }
