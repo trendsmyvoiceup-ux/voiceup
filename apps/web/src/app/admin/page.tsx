@@ -3,12 +3,10 @@ import path from "path";
 import { comparisons } from "@/lib/comparisons";
 import { slugify } from "@/lib/subjects";
 import { AdminBattleTable, type AdminBattleRow } from "@/components/admin/admin-battle-table";
+import { db } from "@/lib/db";
 
-// Internal prototype: reads the Content Factory's local filesystem state
-// on every request. Not suitable for a real production admin surface.
 export const dynamic = "force-dynamic";
 
-// output/ lives at the repo root, two levels above apps/web.
 const REPO_ROOT = path.resolve(process.cwd(), "..", "..");
 const OUTPUT_DIR = path.join(REPO_ROOT, "output");
 
@@ -63,8 +61,6 @@ function readLatestReport(reportsDir: string): LatestReport {
   try {
     const files = fs.readdirSync(reportsDir).filter((f: string) => f.endsWith(".json"));
     if (files.length === 0) return null;
-    // File names are prefixed with an ISO-ish timestamp, so lexical sort
-    // order matches chronological order.
     const latest = files.sort().at(-1)!;
     const raw = fs.readFileSync(path.join(reportsDir, latest), "utf-8");
     return JSON.parse(raw);
@@ -73,11 +69,30 @@ function readLatestReport(reportsDir: string): LatestReport {
   }
 }
 
-export default function AdminPage() {
+async function getRuntimeStats() {
+  try {
+    const [totalVotes, totalBattles, totalSubjects, recentVotes] = await Promise.all([
+      db.vote.count(),
+      db.battle.count(),
+      db.subject.count(),
+      db.vote.count({ where: { createdAt: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) } } }),
+    ]);
+
+    const latestVote = await db.vote.findFirst({ orderBy: { createdAt: "desc" } });
+
+    return { totalVotes, totalBattles, totalSubjects, recentVotes, latestVote };
+  } catch {
+    return null;
+  }
+}
+
+export default async function AdminPage() {
   const proposalsDir = path.join(OUTPUT_DIR, "proposals");
   const battlesDir = path.join(OUTPUT_DIR, "battles");
   const publishedDir = path.join(OUTPUT_DIR, "published");
   const reportsDir = path.join(OUTPUT_DIR, "reports");
+
+  const [runtimeStats] = await Promise.all([getRuntimeStats()]);
 
   const battles: AdminBattleRow[] = comparisons.map((c) => {
     const battleDir = path.join(battlesDir, c.id);
@@ -116,16 +131,41 @@ export default function AdminPage() {
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-4xl flex-col gap-8 px-6 py-10">
       <div className="rounded-2xl border border-amber-400/40 bg-amber-50 p-4 text-sm font-medium text-amber-900 dark:bg-amber-950/30 dark:text-amber-200">
-        ⚠ Internal prototype. Local state only. Not production admin.
+        ⚠ Internal. Not linked from public navigation.
       </div>
 
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Battle Control Room</h1>
         <p className="text-sm text-muted-foreground">
-          Monitor existing battles and the Content Factory&apos;s local output.
+          Runtime database · Content Factory state · Latest activity
         </p>
       </div>
 
+      {/* Runtime stats */}
+      <section className="space-y-3">
+        <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">Runtime Database</h2>
+        {runtimeStats ? (
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <FactoryStat label="Total votes" value={runtimeStats.totalVotes.toLocaleString()} />
+            <FactoryStat label="Votes (24h)" value={runtimeStats.recentVotes.toLocaleString()} />
+            <FactoryStat label="Battles in DB" value={runtimeStats.totalBattles} />
+            <FactoryStat label="Subjects in DB" value={runtimeStats.totalSubjects} />
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            Database not connected. Set{" "}
+            <code className="rounded bg-muted px-1">DATABASE_URL</code> and run{" "}
+            <code className="rounded bg-muted px-1">prisma migrate deploy</code>.
+          </p>
+        )}
+        {runtimeStats?.latestVote && (
+          <p className="text-xs text-muted-foreground">
+            Last vote: {new Date(runtimeStats.latestVote.createdAt).toLocaleString()}
+          </p>
+        )}
+      </section>
+
+      {/* Content Factory */}
       <section className="space-y-3">
         <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
           Content Factory
@@ -138,9 +178,10 @@ export default function AdminPage() {
         </div>
       </section>
 
+      {/* Latest pipeline report */}
       <section className="space-y-3">
         <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
-          Reports
+          Latest Pipeline Report
         </h2>
         {latestReport ? (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -154,13 +195,13 @@ export default function AdminPage() {
           </div>
         ) : (
           <p className="text-sm text-muted-foreground">
-            No pipeline run reports yet. Run{" "}
-            <code className="rounded bg-muted px-1">node scripts/run-pipeline.ts &lt;category&gt;</code>{" "}
-            to generate one.
+            No pipeline reports yet. Run{" "}
+            <code className="rounded bg-muted px-1">node scripts/run-pipeline.ts &lt;category&gt;</code>.
           </p>
         )}
       </section>
 
+      {/* Battles */}
       <section className="space-y-3">
         <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
           Battles

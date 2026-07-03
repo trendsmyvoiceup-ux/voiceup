@@ -1,46 +1,65 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { comparisons, type Comparison, type Subject, type VisualTheme } from "@/lib/comparisons";
 import { slugify } from "@/lib/subjects";
 import { BattleVisual } from "@/components/battle-visual";
 import { cn } from "@/lib/utils";
 
-type Tally = { a: number; b: number };
-type VotesState = Record<string, Tally>;
-type VotedState = Record<string, "a" | "b">;
-
-const VOTES_KEY = "opinion-platform:votes";
+// localStorage keys
 const VOTED_KEY = "opinion-platform:voted";
+const VOTER_ID_KEY = "opinion-platform:voter-id";
 
-function readJSON<T>(key: string, fallback: T): T {
+function getVotedMap(): Record<string, "a" | "b"> {
   try {
-    const raw = window.localStorage.getItem(key);
-    return raw ? (JSON.parse(raw) as T) : fallback;
+    const raw = window.localStorage.getItem(VOTED_KEY);
+    return raw ? (JSON.parse(raw) as Record<string, "a" | "b">) : {};
   } catch {
-    return fallback;
+    return {};
   }
 }
 
+function getAnonymousId(): string {
+  try {
+    const existing = window.localStorage.getItem(VOTER_ID_KEY);
+    if (existing) return existing;
+    const id = crypto.randomUUID();
+    window.localStorage.setItem(VOTER_ID_KEY, id);
+    return id;
+  } catch {
+    return crypto.randomUUID();
+  }
+}
+
+type Counts = { a: number; b: number; total: number };
+
 export function ComparisonVoter({ comparison }: { comparison: Comparison }) {
-  const [votes, setVotes] = useState<VotesState>({});
-  const [voted, setVoted] = useState<VotedState>({});
+  const [myVote, setMyVote] = useState<"a" | "b" | undefined>(undefined);
+  const [counts, setCounts] = useState<Counts>({ a: 0, b: 0, total: 0 });
   const [hydrated, setHydrated] = useState(false);
   const [copied, setCopied] = useState(false);
+  const anonymousIdRef = useRef<string>("");
 
   useEffect(() => {
-    setVotes(readJSON<VotesState>(VOTES_KEY, {}));
-    setVoted(readJSON<VotedState>(VOTED_KEY, {}));
+    const voted = getVotedMap();
+    setMyVote(voted[comparison.id]);
+    anonymousIdRef.current = getAnonymousId();
     setHydrated(true);
-  }, []);
 
-  const tally = votes[comparison.id] ?? { a: 0, b: 0 };
-  const total = tally.a + tally.b;
-  const pctA = total > 0 ? Math.round((tally.a / total) * 100) : 0;
-  const pctB = total > 0 ? 100 - pctA : 0;
-  const myVote = voted[comparison.id];
+    // Load live vote counts from DB
+    fetch(`/api/battles/${comparison.id}/votes`)
+      .then((r) => r.ok ? r.json() : null)
+      .then((data: Counts | null) => {
+        if (data) setCounts(data);
+      })
+      .catch(() => {/* DB unavailable — counts stay at 0 */});
+  }, [comparison.id]);
+
   const hasVoted = myVote !== undefined;
+
+  const pctA = counts.total > 0 ? Math.round((counts.a / counts.total) * 100) : 0;
+  const pctB = counts.total > 0 ? 100 - pctA : 0;
 
   const currentIndex = comparisons.findIndex((c) => c.id === comparison.id);
   const next = comparisons[(currentIndex + 1) % comparisons.length];
@@ -54,23 +73,45 @@ export function ComparisonVoter({ comparison }: { comparison: Comparison }) {
         delay: `${Math.random() * 150}ms`,
         left: `${10 + Math.random() * 80}%`,
       })),
-    [myVote] // eslint-disable-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [myVote]
   );
 
-  function castVote(side: "a" | "b") {
+  async function castVote(side: "a" | "b") {
     if (hasVoted) return;
 
-    const nextTally: Tally = {
-      a: tally.a + (side === "a" ? 1 : 0),
-      b: tally.b + (side === "b" ? 1 : 0),
-    };
-    const nextVotes = { ...votes, [comparison.id]: nextTally };
-    const nextVoted = { ...voted, [comparison.id]: side };
+    const subjectSlug = slugify(side === "a" ? comparison.subjectA.name : comparison.subjectB.name);
 
-    setVotes(nextVotes);
-    setVoted(nextVoted);
-    window.localStorage.setItem(VOTES_KEY, JSON.stringify(nextVotes));
-    window.localStorage.setItem(VOTED_KEY, JSON.stringify(nextVoted));
+    // Optimistic update
+    setMyVote(side);
+
+    try {
+      const res = await fetch("/api/vote", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          battleSlug: comparison.id,
+          subjectSlug,
+          anonymousId: anonymousIdRef.current,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (data.counts) {
+        setCounts(data.counts);
+      }
+
+      // Persist locally only after server confirms
+      const voted = getVotedMap();
+      voted[comparison.id] = side;
+      window.localStorage.setItem(VOTED_KEY, JSON.stringify(voted));
+    } catch {
+      // Network error: persist locally anyway so UX isn't broken offline
+      const voted = getVotedMap();
+      voted[comparison.id] = side;
+      window.localStorage.setItem(VOTED_KEY, JSON.stringify(voted));
+    }
   }
 
   function battleUrl() {
@@ -78,13 +119,12 @@ export function ComparisonVoter({ comparison }: { comparison: Comparison }) {
   }
 
   async function copyLink() {
-    const url = battleUrl();
     try {
-      await navigator.clipboard.writeText(url);
+      await navigator.clipboard.writeText(battleUrl());
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      // clipboard API unavailable; silently ignore
+      // clipboard API unavailable
     }
   }
 
@@ -95,7 +135,7 @@ export function ComparisonVoter({ comparison }: { comparison: Comparison }) {
       try {
         await navigator.share({ title, url });
       } catch {
-        // user cancelled or share failed; no fallback needed
+        // user cancelled or share failed
       }
     } else {
       await copyLink();
@@ -108,16 +148,12 @@ export function ComparisonVoter({ comparison }: { comparison: Comparison }) {
 
   return (
     <div className="relative flex h-full w-full select-none flex-col overflow-hidden bg-black text-white">
-      {/* Category badge: reinforces that this screen is a self-contained,
-          shareable "battle asset", not just a generic voting form. */}
       <div className="pointer-events-none absolute left-0 right-0 top-3 z-10 flex justify-center">
         <span className="rounded-full border border-white/15 bg-black/40 px-3 py-1 text-[11px] font-semibold uppercase tracking-widest text-white/60 backdrop-blur-sm">
           {comparison.category}
         </span>
       </div>
 
-      {/* Two halves create visual tension between the choices. Winning
-          side grows after a vote; losing side recedes. */}
       <div className="flex flex-1 flex-col sm:flex-row">
         <OptionZone
           subject={comparison.subjectA}
@@ -141,14 +177,12 @@ export function ComparisonVoter({ comparison }: { comparison: Comparison }) {
         />
       </div>
 
-      {/* The VS moment: the emotional center of the screen. */}
       <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
         <div className="vs-badge flex h-16 w-16 items-center justify-center rounded-full border border-white/20 bg-black/60 text-lg font-black tracking-widest backdrop-blur-sm sm:h-20 sm:w-20 sm:text-xl">
           VS
         </div>
       </div>
 
-      {/* Delight after voting: a brief confetti burst around the badge. */}
       {hasVoted && (
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
           {confetti.map((c) => (
@@ -169,11 +203,10 @@ export function ComparisonVoter({ comparison }: { comparison: Comparison }) {
         </div>
       )}
 
-      {/* Bottom sheet: appears only after the decision is made. */}
       {hasVoted && (
         <div className="sheet-up absolute inset-x-0 bottom-0 flex flex-col items-center gap-4 rounded-t-3xl border-t border-white/10 bg-black/90 px-6 pb-8 pt-5 text-center backdrop-blur">
           <p className="text-sm font-semibold">
-            Thanks for voting · {total.toLocaleString()} total votes
+            Thanks for voting · {counts.total.toLocaleString()} total votes
           </p>
 
           <div className="flex w-full max-w-sm gap-3 text-sm">
@@ -252,8 +285,6 @@ function OptionZone({
         dimmed && "opacity-40"
       )}
     >
-      {/* Media rendering is fully delegated to BattleVisual, kept separate
-          from voting logic/state above. */}
       <BattleVisual subject={subject} theme={theme} />
 
       <span
@@ -265,9 +296,7 @@ function OptionZone({
         {subject.name}
       </span>
       {percentage !== null && (
-        <span className="text-2xl font-bold text-white/90 sm:text-3xl">
-          {percentage}%
-        </span>
+        <span className="text-2xl font-bold text-white/90 sm:text-3xl">{percentage}%</span>
       )}
       {!disabled && (
         <span className="absolute bottom-6 text-xs font-medium uppercase tracking-widest text-white/50">
