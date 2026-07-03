@@ -20,15 +20,28 @@ async function getSubjectData(slug: string) {
       orderBy: { createdAt: "desc" },
     });
 
-    // Win ratio: battles where this subject received more votes
+    // Win ratio: one grouped query instead of 2×N individual counts
+    const battleIds = battles.map((b) => b.id);
+    const voteCounts = battleIds.length > 0
+      ? await db.vote.groupBy({
+          by: ["battleId", "subjectId"],
+          where: { battleId: { in: battleIds } },
+          _count: { id: true },
+        })
+      : [];
+
+    const countMap = new Map<string, Map<string, number>>();
+    for (const row of voteCounts) {
+      if (!countMap.has(row.battleId)) countMap.set(row.battleId, new Map());
+      countMap.get(row.battleId)!.set(row.subjectId, row._count.id);
+    }
+
     let wins = 0;
     for (const battle of battles) {
-      const [votesA, votesB] = await Promise.all([
-        db.vote.count({ where: { battleId: battle.id, subjectId: battle.subjectAId } }),
-        db.vote.count({ where: { battleId: battle.id, subjectId: battle.subjectBId } }),
-      ]);
-      const myVotes = battle.subjectAId === subject.id ? votesA : votesB;
-      const theirVotes = battle.subjectAId === subject.id ? votesB : votesA;
+      const bMap = countMap.get(battle.id) ?? new Map<string, number>();
+      const myVotes = bMap.get(subject.id) ?? 0;
+      const theirId = battle.subjectAId === subject.id ? battle.subjectBId : battle.subjectAId;
+      const theirVotes = bMap.get(theirId) ?? 0;
       if (myVotes > theirVotes) wins++;
     }
 

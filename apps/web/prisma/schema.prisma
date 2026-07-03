@@ -29,6 +29,8 @@ model Subject {
   battlesAsB     Battle[]        @relation("BattleSubjectB")
   votes          Vote[]
   signalSnapshot SignalSnapshot?
+
+  @@index([category])
 }
 
 model Battle {
@@ -45,6 +47,10 @@ model Battle {
   subjectA Subject @relation("BattleSubjectA", fields: [subjectAId], references: [id])
   subjectB Subject @relation("BattleSubjectB", fields: [subjectBId], references: [id])
   votes    Vote[]
+
+  @@index([category])
+  @@index([subjectAId])
+  @@index([subjectBId])
 }
 
 model Vote {

@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { db } from "@/lib/db";
-import { categories, getCategoryBySlug } from "@/lib/categories";
+import { getCategoryBySlug } from "@/lib/categories";
 
 export const dynamic = "force-dynamic";
 

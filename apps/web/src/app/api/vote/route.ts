@@ -2,6 +2,15 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { refreshSnapshot, getBattleVoteCounts } from "@/lib/signal-engine";
 
+// Source row never changes at runtime — cache after first load.
+let cachedSourceId: string | null = null;
+async function getWebsiteSourceId(): Promise<string | null> {
+  if (cachedSourceId) return cachedSourceId;
+  const source = await db.source.findUnique({ where: { name: "Website" } });
+  if (source) cachedSourceId = source.id;
+  return cachedSourceId ?? null;
+}
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -11,19 +20,25 @@ export async function POST(request: Request) {
       anonymousId?: string;
     };
 
-    if (!battleSlug || !subjectSlug || !anonymousId) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    if (
+      typeof battleSlug !== "string" || battleSlug.length === 0 || battleSlug.length > 120 ||
+      typeof subjectSlug !== "string" || subjectSlug.length === 0 || subjectSlug.length > 120 ||
+      typeof anonymousId !== "string" || anonymousId.length === 0 || anonymousId.length > 128
+    ) {
+      return NextResponse.json({ error: "Invalid request" }, { status: 400 });
     }
 
-    const [battle, subject, source] = await Promise.all([
-      db.battle.findUnique({ where: { slug: battleSlug } }),
-      db.subject.findUnique({ where: { slug: subjectSlug } }),
-      db.source.findUnique({ where: { name: "Website" } }),
+    const [[battle, subject], sourceId] = await Promise.all([
+      Promise.all([
+        db.battle.findUnique({ where: { slug: battleSlug } }),
+        db.subject.findUnique({ where: { slug: subjectSlug } }),
+      ]),
+      getWebsiteSourceId(),
     ]);
 
     if (!battle) return NextResponse.json({ error: "Battle not found" }, { status: 404 });
     if (!subject) return NextResponse.json({ error: "Subject not found" }, { status: 404 });
-    if (!source) return NextResponse.json({ error: "Source not configured" }, { status: 500 });
+    if (!sourceId) return NextResponse.json({ error: "Source not configured" }, { status: 500 });
 
     // Validate the subject is actually part of this battle
     if (subject.id !== battle.subjectAId && subject.id !== battle.subjectBId) {
@@ -35,7 +50,7 @@ export async function POST(request: Request) {
         data: {
           battleId: battle.id,
           subjectId: subject.id,
-          sourceId: source.id,
+          sourceId,
           anonymousId,
         },
       });
