@@ -1,0 +1,3 @@
+/battle/apple-vs-macos
+
+(Prepend the live domain before posting, e.g. https://humansignal.com/battle/${slug})

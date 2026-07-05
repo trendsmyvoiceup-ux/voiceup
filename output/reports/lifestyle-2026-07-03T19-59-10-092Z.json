@@ -1,0 +1,18 @@
+{
+  "category": "lifestyle",
+  "startedAt": "2026-07-03T19:59:04.239Z",
+  "finishedAt": "2026-07-03T19:59:10.092Z",
+  "executionTimeMs": 5853,
+  "totalBattles": 1,
+  "approved": 1,
+  "rejected": 0,
+  "averageScore": 100,
+  "generatedPackages": [
+    {
+      "slug": "coffee-vs-tea",
+      "title": "Coffee vs Tea",
+      "score": 100,
+      "approved": true
+    }
+  ]
+}

@@ -159,13 +159,13 @@ function writeReport(category: string, startedAt: Date, results: BattleResult[])
   return report;
 }
 
-function run(category: string): number {
+async function run(category: string): Promise<number> {
   const startedAt = new Date();
   console.log(`Running pipeline for category: ${category}\n`);
 
   let proposals: { slug: string; proposalPath: string; subjectA: string; subjectB: string }[];
   try {
-    proposals = runPlannerBatch(category, PROPOSALS_DIR);
+    proposals = await runPlannerBatch(category, PROPOSALS_DIR);
   } catch (err) {
     console.log(`✘ Planner — ${errorMessage(err)}`);
     console.log("\nPipeline failed.");
@@ -200,15 +200,15 @@ function main() {
     process.exit(EXIT_FAILED);
   }
 
-  try {
-    process.exit(run(category));
-  } catch (err) {
-    // Defensive top-level catch: any error not already handled inside
-    // run()/processBattle() (e.g. a bug in the runner itself) is reported
-    // cleanly instead of as a raw stack trace.
-    console.error("Unexpected runner error:", errorMessage(err));
-    process.exit(EXIT_FAILED);
-  }
+  run(category)
+    .then((code) => process.exit(code))
+    .catch((err) => {
+      // Defensive top-level catch: any error not already handled inside
+      // run()/processBattle() (e.g. a bug in the runner itself) is reported
+      // cleanly instead of as a raw stack trace.
+      console.error("Unexpected runner error:", errorMessage(err));
+      process.exit(EXIT_FAILED);
+    });
 }
 
 main();

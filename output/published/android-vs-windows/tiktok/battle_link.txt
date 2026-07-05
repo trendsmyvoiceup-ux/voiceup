@@ -1,0 +1,3 @@
+/battle/android-vs-windows
+
+(Prepend the live domain before posting, e.g. https://humansignal.com/battle/${slug})

@@ -61,3 +61,50 @@ This is a condensed, agent-facing summary of key decisions. The full decision lo
 - **Pipeline output is authoritative.** Running the pipeline for `apple-vs-android` regenerated and overwrote the previously hand-written reference Battle Package (e.g. `mediaHint` changed from "Smartphone ecosystem" to the category name "Technology"; script/caption/hashtags replaced with generated templates). Founder confirmed: keep the regenerated version, do not restore the hand-written content — the pipeline's output is now the source of truth, not manually curated reference files.
 - **`mediaHint` = category name** is accepted as the deterministic placeholder for subject media hints, since no LLM exists yet to produce richer per-subject hints.
 - **Temporary duplication accepted again:** `scripts/battle-designer.ts` duplicates a category → `visualTheme` mapping that conceptually overlaps with `apps/web/src/lib/comparisons.ts`. Same tradeoff as `scripts/catalog.ts` (TASK-0027) — acceptable for now, no shared package to be built yet.
+
+## Local LLM — Production Model Decision
+
+**Benchmarked:** 2026-07-05. Three models evaluated across 3 categories × 2 prompt strategies × 3 runs = 54 inference calls per model. Full report: `output/reports/llm-benchmark.md`.
+
+| Role | Model | Score | Rationale |
+|------|-------|------:|-----------|
+| **Production** | `qwen2.5:7b` | 88.0/100 | 100% JSON validity · 100% pair completeness · 0% duplicate rate · 7.9s p50 latency · best overall |
+| **Fallback** | `llama3.1:8b` | 86.2/100 | 100% JSON validity · 97% completeness · 0% duplicates · viable alternative |
+| **Rejected** | `gemma3:4b` | 74.3/100 | 63% completeness · 23% duplicate rate · removed from Ollama (`ollama rm gemma3:4b`) |
+
+**Prompt strategy:** Strategy B (no `format:"json"` flag, explicit array instruction, explicit pair count, no example object). Strategy A (`format:"json"` + example) caused Gemma and Qwen to return single-pair objects instead of full arrays — confirmed via raw response inspection.
+
+**Architectural impact:**
+- `scripts/llm/ollama.ts` default model updated to `qwen2.5:7b`
+- `buildPrompt()` now uses Strategy B
+- `format:"json"` flag removed from Ollama API call
+- `extractJsonText()` pre-processor added (strips markdown fences, extracts embedded arrays) for robustness across model variations
+
+**Usage:**
+```bash
+# Production
+PLANNER_MODE=local-llm node scripts/run-pipeline.ts technology
+
+# Fallback (if Qwen unavailable)
+PLANNER_MODE=local-llm OLLAMA_MODEL=llama3.1:8b node scripts/run-pipeline.ts technology
+```
+
+**Deterministic mode remains the default.** Set `PLANNER_MODE=local-llm` explicitly to use any LLM provider.
+
+## Backlog
+
+### Epic: Evaluate Gemma 4
+
+**Status:** Backlog — no implementation.
+
+**Trigger:** When `gemma4` (or equivalent next-generation Gemma variant) becomes stable and available in Ollama.
+
+**Success criteria (must all pass to replace Qwen as production default):**
+- Outperforms `qwen2.5:7b` overall benchmark score (> 88.0/100)
+- Equal or better JSON validity (100%)
+- Equal or better pair completeness (100%)
+- Better creativity score (novel, high-quality pairs beyond catalog defaults)
+- Similar or lower p50 latency (≤ 8s on current hardware)
+- Similar or lower VRAM footprint (≤ 5 GB)
+
+**Not a priority.** Qwen 2.5 7B is production-stable. Re-evaluate only when Gemma 4 is mature in Ollama.

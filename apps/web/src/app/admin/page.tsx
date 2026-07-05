@@ -1,8 +1,10 @@
 import fs from "fs";
 import path from "path";
+import Link from "next/link";
 import { comparisons } from "@/lib/comparisons";
 import { slugify } from "@/lib/subjects";
 import { AdminBattleTable, type AdminBattleRow } from "@/components/admin/admin-battle-table";
+import { TikTokQueueTable, type TikTokQueueRow } from "@/components/admin/tiktok-queue-table";
 import { db } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -69,6 +71,66 @@ function readLatestReport(reportsDir: string): LatestReport {
   }
 }
 
+function readTikTokQueue(
+  battlesDir: string,
+  publishedDir: string
+): TikTokQueueRow[] {
+  const rows: TikTokQueueRow[] = [];
+
+  let slugs: string[];
+  try {
+    slugs = fs
+      .readdirSync(publishedDir)
+      .filter(
+        (f) =>
+          !f.startsWith(".") &&
+          fs.statSync(path.join(publishedDir, f)).isDirectory()
+      );
+  } catch {
+    return [];
+  }
+
+  for (const slug of slugs) {
+    const tiktokDir = path.join(publishedDir, slug, "tiktok");
+    if (!exists(tiktokDir)) continue;
+
+    const battleFile = path.join(battlesDir, slug, "battle.json");
+    let title = slug;
+    try {
+      const b = JSON.parse(fs.readFileSync(battleFile, "utf-8"));
+      title = `${b.subjectA.name} vs ${b.subjectB.name}`;
+    } catch {}
+
+    let reviewScore: number | null = null;
+    try {
+      const r = JSON.parse(
+        fs.readFileSync(path.join(battlesDir, slug, "review.json"), "utf-8")
+      );
+      reviewScore = typeof r.overall === "number" ? r.overall : null;
+    } catch {}
+
+    let battleLink = `/battle/${slug}`;
+    try {
+      const raw = fs
+        .readFileSync(path.join(tiktokDir, "battle_link.txt"), "utf-8")
+        .trim();
+      battleLink = raw.split("\n")[0].trim();
+    } catch {}
+
+    rows.push({
+      slug,
+      title,
+      reviewScore,
+      hasCaption: exists(path.join(tiktokDir, "caption.txt")),
+      hasScript: exists(path.join(tiktokDir, "script.txt")),
+      hasVideoPrompt: exists(path.join(tiktokDir, "video_prompt.txt")),
+      battleLink,
+    });
+  }
+
+  return rows.sort((a, b) => a.slug.localeCompare(b.slug));
+}
+
 async function getRuntimeStats() {
   try {
     const [totalVotes, totalBattles, totalSubjects, recentVotes] = await Promise.all([
@@ -93,6 +155,8 @@ export default async function AdminPage() {
   const reportsDir = path.join(OUTPUT_DIR, "reports");
 
   const [runtimeStats] = await Promise.all([getRuntimeStats()]);
+
+  const tiktokQueue = readTikTokQueue(battlesDir, publishedDir);
 
   const battles: AdminBattleRow[] = comparisons.map((c) => {
     const battleDir = path.join(battlesDir, c.id);
@@ -201,12 +265,49 @@ export default async function AdminPage() {
         )}
       </section>
 
+      {/* TikTok Queue */}
+      <section className="space-y-3">
+        <div>
+          <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
+            TikTok Queue
+          </h2>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Status is local-only (localStorage). Publish manually. No API connected.
+          </p>
+        </div>
+        <TikTokQueueTable rows={tiktokQueue} />
+      </section>
+
       {/* Battles */}
       <section className="space-y-3">
         <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
           Battles
         </h2>
         <AdminBattleTable battles={battles} />
+      </section>
+
+      {/* Internal tools */}
+      <section className="border-t border-white/6 pt-6">
+        <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-3">
+          Internal Tools
+        </h2>
+        <Link
+          href="/studio"
+          className="flex items-center justify-between rounded-2xl border border-white/8 bg-white/3 px-5 py-4 transition-colors hover:bg-white/5"
+        >
+          <div>
+            <p className="text-sm font-semibold text-white/80">Creator Studio</p>
+            <p className="mt-0.5 text-xs text-white/35">
+              Preview, approve and prepare battles for social publication.
+            </p>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <span className="rounded-full border border-amber-400/30 bg-amber-950/30 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-amber-300/80">
+              Internal
+            </span>
+            <span className="text-white/25">→</span>
+          </div>
+        </Link>
       </section>
     </main>
   );

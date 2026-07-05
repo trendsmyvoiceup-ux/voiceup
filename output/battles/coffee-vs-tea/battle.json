@@ -1,0 +1,15 @@
+{
+  "id": "coffee-vs-tea",
+  "subjectA": {
+    "name": "Coffee",
+    "mediaLabel": "Coffee",
+    "mediaHint": "Lifestyle"
+  },
+  "subjectB": {
+    "name": "Tea",
+    "mediaLabel": "Tea",
+    "mediaHint": "Lifestyle"
+  },
+  "category": "Lifestyle",
+  "visualTheme": "lifestyle"
+}

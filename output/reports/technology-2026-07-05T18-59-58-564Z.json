@@ -1,0 +1,72 @@
+{
+  "category": "technology",
+  "startedAt": "2026-07-05T18:59:49.851Z",
+  "finishedAt": "2026-07-05T18:59:58.564Z",
+  "executionTimeMs": 8713,
+  "totalBattles": 10,
+  "approved": 10,
+  "rejected": 0,
+  "averageScore": 100,
+  "generatedPackages": [
+    {
+      "slug": "apple-vs-android",
+      "title": "Apple vs Android",
+      "score": 100,
+      "approved": true
+    },
+    {
+      "slug": "apple-vs-windows",
+      "title": "Apple vs Windows",
+      "score": 100,
+      "approved": true
+    },
+    {
+      "slug": "apple-vs-macos",
+      "title": "Apple vs macOS",
+      "score": 100,
+      "approved": true
+    },
+    {
+      "slug": "apple-vs-linux",
+      "title": "Apple vs Linux",
+      "score": 100,
+      "approved": true
+    },
+    {
+      "slug": "android-vs-windows",
+      "title": "Android vs Windows",
+      "score": 100,
+      "approved": true
+    },
+    {
+      "slug": "android-vs-macos",
+      "title": "Android vs macOS",
+      "score": 100,
+      "approved": true
+    },
+    {
+      "slug": "android-vs-linux",
+      "title": "Android vs Linux",
+      "score": 100,
+      "approved": true
+    },
+    {
+      "slug": "windows-vs-macos",
+      "title": "Windows vs macOS",
+      "score": 100,
+      "approved": true
+    },
+    {
+      "slug": "windows-vs-linux",
+      "title": "Windows vs Linux",
+      "score": 100,
+      "approved": true
+    },
+    {
+      "slug": "macos-vs-linux",
+      "title": "macOS vs Linux",
+      "score": 100,
+      "approved": true
+    }
+  ]
+}
