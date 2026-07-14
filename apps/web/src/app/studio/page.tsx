@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 import Link from "next/link";
-import type { StudioBattle, PipelineStatus } from "@/types/studio";
+import type { StudioBattle, PipelineStatus, StudioStats } from "@/types/studio";
 import { StudioDashboard } from "@/components/studio/studio-dashboard";
 
 export const dynamic = "force-dynamic";
@@ -92,31 +92,54 @@ function readAllBattles(): StudioBattle[] {
   return slugs.map(readBattle).filter(Boolean) as StudioBattle[];
 }
 
+function computeStats(battles: StudioBattle[]): StudioStats {
+  const scored = battles.filter(b => b.reviewScore !== null);
+  return {
+    total:        battles.length,
+    reviewed:     scored.length,
+    approved:     battles.filter(b => b.reviewApproved === true).length,
+    rejected:     battles.filter(b => b.reviewApproved === false).length,
+    withTikTok:   battles.filter(b => b.hasTikTokPackage).length,
+    withPublished: battles.filter(b => b.hasPublishedPackage).length,
+    avgScore:     scored.length > 0
+      ? Math.round(scored.reduce((s, b) => s + (b.reviewScore ?? 0), 0) / scored.length)
+      : null,
+  };
+}
+
 export default function StudioPage() {
   const battles = readAllBattles();
+  const stats   = computeStats(battles);
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-5xl flex-col gap-8 px-6 py-10">
-      <div className="rounded-2xl border border-amber-400/40 bg-amber-950/30 px-4 py-3 text-sm font-medium text-amber-200">
-        ⚠ Internal — Creator Studio. Not linked from public navigation.
-      </div>
-
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Creator Studio</h1>
-          <p className="mt-1 text-sm text-white/40">
-            Generate, preview, approve and prepare battles for social publication.
-          </p>
-        </div>
+    <main className="mx-auto min-h-screen w-full max-w-7xl px-6 py-10">
+      {/* Internal banner */}
+      <div className="mb-8 flex items-center gap-3 rounded-2xl border border-amber-400/20 bg-amber-950/20 px-4 py-2.5">
+        <span className="text-[10px] font-bold uppercase tracking-widest text-amber-400/60">Internal</span>
+        <span className="text-xs text-amber-300/40">
+          Creator Studio — not linked from public navigation.
+        </span>
         <Link
           href="/admin"
-          className="shrink-0 text-xs text-white/25 transition-colors hover:text-white/50"
+          className="ml-auto text-[10px] text-white/20 transition-colors hover:text-white/50"
         >
           ← Admin
         </Link>
       </div>
 
-      <StudioDashboard battles={battles} />
+      {/* Page header */}
+      <div className="mb-10 flex items-end justify-between gap-6">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-white">
+            Human Signal Studio
+          </h1>
+          <p className="mt-1.5 text-sm text-white/35">
+            AI-powered production pipeline for Human Signals.
+          </p>
+        </div>
+      </div>
+
+      <StudioDashboard battles={battles} stats={stats} />
     </main>
   );
 }

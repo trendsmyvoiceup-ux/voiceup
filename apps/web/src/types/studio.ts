@@ -53,3 +53,13 @@ export type StudioEntry = {
 };
 
 export type StudioStore = Record<string, StudioEntry>;
+
+export type StudioStats = {
+  total: number;
+  reviewed: number;
+  approved: number;
+  rejected: number;
+  withTikTok: number;
+  withPublished: number;
+  avgScore: number | null;
+};
