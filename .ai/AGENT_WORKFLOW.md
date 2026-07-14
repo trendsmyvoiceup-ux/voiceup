@@ -1,5 +1,11 @@
 # Agent Workflow
 
+> ⚠️ DEPRECATED — 2026-07-05
+> Superseded by `.ai/roles/` (agent definitions) and `.ai/MANIFEST.md` (workflow entry point).
+> Preserved for historical reference. Do not update this file.
+
+---
+
 How different roles (human and AI) collaborate on this repository.
 
 ## Roles

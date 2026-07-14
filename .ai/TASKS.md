@@ -1,5 +1,12 @@
 # Tasks
 
+> ⚠️ DEPRECATED — 2026-07-05
+> Superseded by `.ai/state/TASK.md` (active task), `.ai/state/BACKLOG.md` (queue), and `.ai/state/EPIC.md` (current epic).
+> Preserved for historical record of TASK-0005 through TASK-0031.
+> Do not add new tasks here.
+
+---
+
 ## Format
 
 ```

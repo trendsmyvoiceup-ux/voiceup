@@ -18,3 +18,12 @@ Binding principles for any human or AI agent contributing to this repository.
 - Do not install dependencies without explicit approval.
 - Do not create application code without explicit approval.
 - Document every important decision in `.ai/DECISIONS.md` (or `DECISIONS.md` at root, per current convention).
+
+## Memory discipline
+
+- Read `.ai/memory/INDEX.md` at the start of any session where you will write code or make architectural choices.
+- Read your domain memory file (`.ai/memory/<domain>.md`) before executing tasks in that domain.
+- Update memory when you discover a durable lesson — a pattern, pitfall, or heuristic that will still be true next year.
+- Never write task history or event logs to memory files. Logs go in `.ai/log/AI_CHANGELOG.md`.
+- Prefer deleting stale memory over letting it accumulate. A smaller, accurate memory is more valuable than a large, partially outdated one.
+- Unvalidated ideas go in `.ai/memory/future.md`, not in domain files.
