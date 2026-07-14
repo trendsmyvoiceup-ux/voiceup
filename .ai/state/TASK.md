@@ -5,39 +5,48 @@
 
 ---
 
-## TASK-0041 — Human Motivation Evidence Base
+## TASK-0042 — Signal Motivation Layer: public battle page V2
 
-**Epic:** Epic 1
-**Status:** In Progress
-**Owner:** Research Agent
-**Started:** 2026-07-05
+**Epic:** Epic 2 — Signal Motivation Layer: Experimental MVP
+**Status:** Ready
+**Owner:** Engineering Agent
+**Opened:** 2026-07-14
 
 ### Objective
 
-Synthesize peer-reviewed evidence across psychology, HCI, and ethics into a practical research foundation for the Human Signal motivation layer. Produce all 7 deliverables specified in Epic 1.
+Implement the motivation layer on the public battle page (`/battle/[slug]`). Deliver a complete vote → reveal → reason flow that is testable against real voter behavior.
+
+### Scope
+
+- Post-vote reveal: results display after vote only, never before
+- Minority / majority post-vote framing: neutral distinctiveness copy ("You're in the 29% who chose B — a distinctive view")
+- Optional reason selection: preset options (3–5), zero-friction skip, no free text
+- Wording configuration layer: all copy in a central config object, not hardcoded inline
 
 ### Acceptance criteria
 
-- [ ] `.ai/RESEARCH.md` contains all 7 deliverables with citations
-- [ ] Evidence matrix separates Strong / Moderate / Weak / Conflicting findings
-- [ ] Motivation model references validated frameworks (minimum: SDT, social comparison)
-- [ ] Prohibited patterns list is concrete and actionable
-- [ ] Four UX variants have clear hypotheses and primary metrics
-- [ ] Experimental plan defines primary and secondary metrics
-- [ ] MVP recommendation justifies what is excluded as well as what is included
-- [ ] `.ai/memory/research.md` updated with durable findings
-- [ ] `.ai/memory/product.md` updated with product implications
-- [ ] `.ai/memory/compliance.md` updated with ethical risks
+- [ ] No vote results displayed before the user casts a vote
+- [ ] Post-vote reveal shows correct percentage for both options
+- [ ] Minority result copy uses distinctiveness framing (not loss/defeat language)
+- [ ] Majority result copy is neutral (not "winning" language)
+- [ ] Optional reason section has a visible, zero-friction skip
+- [ ] Reason selection does not require login, profile, or any account action
+- [ ] All display copy lives in a named config object in the component or a separate config file
+- [ ] No gamification mechanics introduced (no streaks, points, badges, leaderboards)
+- [ ] `pnpm build` passes from `apps/web/`
+- [ ] Founder QA pass: full vote → reveal → reason flow works end-to-end
 
 ### Implementation notes
 
-Research Agent draws on training knowledge of peer-reviewed literature.
-Evidence strength must be explicitly stated — no inflation of weak findings.
-TikTok/mobile context generalizability must be flagged where limited.
-Correlation/causation discipline must be maintained throughout.
+- Start from: `apps/web/src/app/battle/[slug]/page.tsx` (or equivalent route)
+- Votes are currently localStorage-based — do not change the storage mechanism
+- The reason selection result does not need to persist at MVP — localStorage is acceptable
+- Follow V2 design language: dark, minimal, Linear/Vercel aesthetic; see `memory/product.md`
+- Do NOT implement mission framing, contribution ladder, or pre-vote participation count
+- Read `memory/product.md` motivation layer principles before implementing any copy
+- Read `memory/compliance.md` prohibited mechanics list before implementing any engagement mechanic
 
-### Result
+### Research basis
 
-**Status:** Done
-
-All 7 deliverables in `.ai/RESEARCH.md`. Extended with 4 research streams. Critical scientific review appended (falsification pass — 8 claims reviewed, 4 disciplines identified as missing, product biases documented). Memory files updated to reflect corrected evidence positions. 3 claims demoted from established finding to hypothesis in `future.md`. Prohibited mechanics list restructured into Tier 1/Tier 2 with corrected evidence grades. No application code modified.
+`.ai/RESEARCH.md` — Deliverable 7 (MVP recommendation); Deliverable 5 (UX variants); Critical Review (confirmed findings)
+`.ai/memory/product.md` — Post-vote reveal (non-negotiable), neutral framing, minority framing, prohibited mechanics
