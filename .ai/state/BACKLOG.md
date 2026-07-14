@@ -59,6 +59,25 @@
 
 ---
 
+---
+
+### Research-identified future Epics (not activated — awaiting Founder prioritization)
+
+These Epics are identified by the Human Motivation research (Epic 1, Streams 1–4). They are not sequenced or approved. Founder must declare before any work begins.
+
+| ID      | Epic title                                  | Trigger condition                              | Research basis |
+|---------|---------------------------------------------|------------------------------------------------|----------------|
+| EPIC-2  | Signal Motivation Layer MVP                 | After Variant A baseline (200+ votes/battle)   | RESEARCH.md Deliverable 7 |
+| EPIC-3  | Four UX Motivation Variants (A–D)           | After EPIC-2 validated, 10+ battles            | RESEARCH.md Deliverable 5 |
+| EPIC-4  | Cross-cultural adaptation: Japan + South Korea | After 1000+ votes baseline established      | RESEARCH.md Stream 2 |
+| EPIC-5  | Contribution layer above the vote           | After 6-month retention baseline measured      | RESEARCH.md Stream 1 |
+| EPIC-6  | AI signal provenance architecture           | Before any AI agent can produce visible signals| RESEARCH.md Stream 3 |
+| EPIC-7  | International expansion: France + Italy     | After East Asia adaptation validated           | RESEARCH.md Stream 2 |
+| EPIC-8  | Calibration layer (opt-in prediction)       | After core loop validated at scale             | RESEARCH.md Stream 4 |
+| EPIC-9  | Database schema + real vote API (TASK-0045) | Current P1 — not blocked on research           | Existing backlog |
+
+---
+
 ## Recently completed
 
 | ID        | Title                                           | Completed   |

@@ -5,36 +5,39 @@
 
 ---
 
-## TASK-0040 — Build AI Development OS
+## TASK-0041 — Human Motivation Evidence Base
 
-**Epic:** Epic 0
+**Epic:** Epic 1
 **Status:** In Progress
-**Owner:** Engineering Agent
+**Owner:** Research Agent
 **Started:** 2026-07-05
 
 ### Objective
 
-Create the `.ai/` operating system: MANIFEST.md entry point, state/ directory, roles/ directory, log/ directory. Deprecate superseded files. Do not touch application code.
+Synthesize peer-reviewed evidence across psychology, HCI, and ethics into a practical research foundation for the Human Signal motivation layer. Produce all 7 deliverables specified in Epic 1.
 
 ### Acceptance criteria
 
-- [ ] `.ai/MANIFEST.md` exists and answers: what is this project, what's the active epic, what's the active task, what's next
-- [ ] `.ai/state/EPIC.md` — active epic with scope, success criteria, task list
-- [ ] `.ai/state/TASK.md` — this file, with status tracking
-- [ ] `.ai/state/BACKLOG.md` — prioritized queue of future work
-- [ ] `.ai/state/REVIEW.md` — product review queue
-- [ ] `.ai/roles/` — definitions for all 8 agent roles + template
-- [ ] `.ai/log/AI_CHANGELOG.md` — append-only log initialized
-- [ ] AGENT_WORKFLOW.md and TASKS.md marked as deprecated
-- [ ] `pnpm build` passes
+- [ ] `.ai/RESEARCH.md` contains all 7 deliverables with citations
+- [ ] Evidence matrix separates Strong / Moderate / Weak / Conflicting findings
+- [ ] Motivation model references validated frameworks (minimum: SDT, social comparison)
+- [ ] Prohibited patterns list is concrete and actionable
+- [ ] Four UX variants have clear hypotheses and primary metrics
+- [ ] Experimental plan defines primary and secondary metrics
+- [ ] MVP recommendation justifies what is excluded as well as what is included
+- [ ] `.ai/memory/research.md` updated with durable findings
+- [ ] `.ai/memory/product.md` updated with product implications
+- [ ] `.ai/memory/compliance.md` updated with ethical risks
 
 ### Implementation notes
 
-Engineering Agent works from `.ai/RULES.md` at all times.
-No application code. No dependencies. No commits until Founder approves.
+Research Agent draws on training knowledge of peer-reviewed literature.
+Evidence strength must be explicitly stated — no inflation of weak findings.
+TikTok/mobile context generalizability must be flagged where limited.
+Correlation/causation discipline must be maintained throughout.
 
 ### Result
 
-**Status:** Done — Pending Review (REVIEW-0001 written to state/REVIEW.md)
+**Status:** Done
 
-All acceptance criteria met. 15 files created across `.ai/`. AGENT_WORKFLOW.md and TASKS.md deprecated with headers pointing to replacements. `pnpm build` passing. Review block written for Founder.
+All 7 deliverables in `.ai/RESEARCH.md`. Extended with 4 research streams. Critical scientific review appended (falsification pass — 8 claims reviewed, 4 disciplines identified as missing, product biases documented). Memory files updated to reflect corrected evidence positions. 3 claims demoted from established finding to hypothesis in `future.md`. Prohibited mechanics list restructured into Tier 1/Tier 2 with corrected evidence grades. No application code modified.

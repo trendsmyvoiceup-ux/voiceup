@@ -5,46 +5,54 @@
 
 ---
 
-## Epic 0 — AI Development OS Foundation
+## Epic 1 — Human Motivation Evidence Base
 
 **Status:** In Progress
 **Opened:** 2026-07-05
-**Goal:** Transform the repository into a self-describing communication bus that any AI agent can navigate without a human briefing.
+**Type:** Research — no application code changes
+**Goal:** Build the scientific and ethical foundation for the Human Signal motivation layer, so that every future UX decision is grounded in evidence rather than convention.
 
 ### Why this matters
 
-The project has outgrown ad-hoc collaboration. As agent count grows, every session currently starts with re-orientation. This epic eliminates that cost permanently.
+The Human Signal platform asks people to interrupt scrolling and express a genuine preference. The quality of that signal — and the platform's ethical standing — depends entirely on understanding what motivates this act, what distorts it, and what harms it. Without this foundation, every motivation feature is a guess that may optimize engagement at the cost of signal quality or user wellbeing.
 
 ### Scope
 
-- MANIFEST.md — single entry point (current state at a glance)
-- state/ — living work items (epic, task, backlog, review queue)
-- roles/ — agent definitions (mission, reads, writes, KPIs)
-- log/ — append-only AI changelog
-- Deprecate AGENT_WORKFLOW.md and TASKS.md (superseded)
+- Evidence matrix: 7 research questions × multiple disciplines
+- Motivation model for Human Signal
+- Taxonomy of battle motivations
+- Prohibited and high-risk patterns list
+- Four testable UX variants
+- Experimental plan with metrics
+- MVP Signal Motivation Layer recommendation
 
 ### Out of scope
 
 - Application code changes
-- Database changes
+- Database schema
 - Pipeline changes
 - Studio changes
+- Any implementation
 
 ### Success criteria
 
-- [ ] Any AI agent can orient itself by reading MANIFEST.md in < 60 seconds
-- [ ] Every agent role has a definition file with mission, reads, writes, KPIs
-- [ ] Active task is always obvious (state/TASK.md)
-- [ ] Founder can understand project status in < 3 minutes from MANIFEST.md
-- [ ] `pnpm build` passes unchanged
+- [ ] Evidence matrix covers all 7 research questions with source citations
+- [ ] Evidence strength is explicit (Strong / Moderate / Weak / Conflicting)
+- [ ] Established findings are separated from hypotheses
+- [ ] Motivation model is grounded in at least two validated frameworks
+- [ ] Prohibited patterns list is actionable (designers can apply it)
+- [ ] Four UX variants are testable with clear primary metrics
+- [ ] MVP recommendation is the smallest defensible motivation layer
 
 ### Tasks
 
-| ID        | Title                           | Status      |
-|-----------|---------------------------------|-------------|
-| TASK-0040 | Build AI Development OS         | In Progress |
+| ID        | Title                              | Status      |
+|-----------|------------------------------------|-------------|
+| TASK-0041 | Human Motivation Evidence Base     | In Progress |
 
-### Review
+### Output files
 
-When complete, Engineering Agent writes findings to `.ai/state/REVIEW.md`.
-Founder reviews and marks epic Closed.
+- `.ai/RESEARCH.md` — all 7 deliverables
+- `.ai/memory/research.md` — updated with validated findings
+- `.ai/memory/product.md` — updated with product implications
+- `.ai/memory/compliance.md` — updated with ethical risks

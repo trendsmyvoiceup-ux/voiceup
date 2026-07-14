@@ -12,6 +12,24 @@
 
 ## Product hypotheses
 
+### Mission alignment adds value for long-term retention on Human Signal
+**Confidence:** Low-Medium
+**Hypothesis:** Mission framing ("each vote is a coordinate in a permanent atlas of human preference") will improve retention after the novelty window (months 2–3) compared to no framing.
+**Why a hypothesis, not a finding:** Research basis (Rotman et al., 2012; Nov, 2007) comes from HIGH-EFFORT contribution platforms (citizen science, Wikipedia). Platforms sustaining through entertainment, recommendation, social relationships, and continuous content demonstrate that alternative retention mechanisms exist. Mission alignment and contribution ladders are not universally necessary; their value for Human Signal requires validation. The correct position is not "mission is required" or "mission is irrelevant" — it is "mission may add value; test before building."
+**Validation criteria:** Measure 90-day rolling retention at MVP baseline (no mission framing). If month-over-month retention drops significantly, introduce mission framing as a testable intervention (A/B). Do NOT build mission framing as a required scaffold before measuring the baseline.
+
+### The contribution ladder is necessary for scale
+**Confidence:** Low
+**Hypothesis:** Human Signal requires multiple contribution levels (vote → reason → proposal → curation) to sustain the platform's most active contributors over time.
+**Why a hypothesis, not a finding:** Evidence from complex-contribution platforms (citizen science, Wikipedia) does not transfer to low-effort voting. Instagram, Spotify, and TikTok sustain at massive scale with minimal contribution depth. Need is unvalidated for Human Signal specifically.
+**Validation criteria:** Measure at 6 months: what percentage of active users are at the vote-only level? Do users who would participate at Level 2 (optional reason) actually exist in the user base? Only build Level 2 if qualitative research or behavior signals confirm demand.
+
+### Participation count (not direction) before vote increases completion without conformity bias
+**Confidence:** Medium
+**Hypothesis:** Showing "1,247 people have voted" (participation count, no direction) before the user votes increases completion rate via social relevance/legitimacy signals without triggering the Asch conformity mechanism (which requires knowing the direction of the majority, not just the size).
+**Why a hypothesis:** The post-vote reveal prohibition was applied broadly. The conformity mechanism requires direction information; participation count does not provide direction. Separate evidence streams suggest participation counts increase platform legitimacy (Burtch et al., 2013 — crowdfunding; Zhang et al., 2014 — ecommerce).
+**Validation criteria:** A/B test: no count vs. participation count (no direction) displayed before voting. Measure: completion rate, vote distribution shift (should be near-zero if hypothesis is correct), perceived legitimacy.
+
 ### Binary format drives stronger engagement than multi-option
 **Confidence:** Medium
 **Hypothesis:** Forcing a binary choice produces stronger opinions and higher engagement than presenting 3+ options, because it eliminates the "it depends" escape and forces commitment.

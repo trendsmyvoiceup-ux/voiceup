@@ -68,3 +68,49 @@ All design work assumes `<html class="dark">` is always applied. Light mode is n
 
 ### No accessibility audit yet
 No formal accessibility review has been conducted. Before any public launch, WCAG 2.1 AA compliance is required. Prioritize: keyboard navigation for voting, sufficient color contrast (check oklch values against WCAG), focus indicators on interactive elements.
+
+---
+
+## Motivation layer ethics (evidence-based)
+
+Full source: `.ai/RESEARCH.md` (Epic 1). Distilled compliance principles below.
+
+### Dark patterns prohibition list
+
+**Tier 1 — Never implement (ethical and legal prohibitions with strong evidence basis):**
+1. Pre-vote DIRECTION display (showing which option leads) — corrupts autonomous consent and signal quality [S]
+2. Manipulated or inflated vote counts — consumer protection law risk, trust destruction [S]
+3. Variable ratio reinforcement (random reward schedules) — documented compulsive use mechanism [S]
+4. Category-identity result framing — polarization, identity-protective cognition activation [M]
+5. Deceptive public-profile defaults — GDPR Art. 7 violation [Legal requirement]
+6. "Not scientific polling" omission — trust model requirement + AI content law [Legal/trust requirement]
+
+**Tier 2 — High risk, do not implement without explicit Founder decision and compliance review:**
+7. Loss-aversion streak mechanics — psychological harm risk documented [M], but Duolingo counterexample exists; treat as Tier 2 not Tier 1
+
+**Clarification (added by Critical Review):**
+- "Pre-vote result display" prohibits DIRECTION only. Pre-vote PARTICIPATION COUNT (how many voted, not which way) is a separate question with weaker prohibition evidence. A/B test before prohibiting.
+- Informational feedback that informs performance (not controlling reward) is not on this list and is not contraindicated by the same evidence base.
+
+Evidence base: Gray et al. (2018) CHI; Nouwens et al. (2020) CHI; Skinner (1938); Kahneman & Tversky (1979); Noelle-Neumann (1974); GDPR Art. 7. Critical review: RESEARCH.md Critical Review section.
+
+### Chilling effect and anonymity
+Penney (2016): when people know their opinions are visible, they self-censor — especially minority positions. Anonymous voting is not just a privacy preference — it is epistemically necessary for honest signals. Any move toward mandatory identity in voting requires a formal privacy impact assessment.
+
+### FOMO framing is a wellbeing risk
+Przybylski et al. (2013): Fear of Missing Out is negatively correlated with life satisfaction. Never use FOMO in notifications or re-engagement copy. "New battle posted" is acceptable. "Don't miss what 10,000 people are saying" is not.
+
+### Human oversight gate must never be automated away
+The Reviewer gate (review.json.approved) and the Founder approval step in Creator Studio are the human oversight mechanism for the AI pipeline. Automating either gate without a Founder decision and compliance review would violate the human oversight principle in the trust model and conflict with emerging EU AI Act requirements for human oversight of AI-generated content.
+
+### Contextual integrity applies to all data sharing
+Nissenbaum (2004): information shared in one context (a vote on a platform) cannot be recontextualized without violating user expectations. Vote data must not be shared with third parties, used for targeted advertising, or exposed in ways that reveal individual voting patterns — even when anonymous at the individual level.
+
+### AI signals require architectural separation, not policy separation
+If AI agents ever produce signals on the platform, they must be stored, displayed, and analyzed in a completely separate data path from human signals. A policy that says "we won't mix them" is not sufficient — the architecture must make mixing structurally impossible. This is a data model requirement for TASK-0045 (database schema).
+
+### China requires separate legal review (PIPL)
+China's Personal Information Protection Law (PIPL, effective 2021) is in some respects more stringent than GDPR. Any deployment targeting Chinese users requires separate legal review — do not assume GDPR compliance transfers. This applies even to anonymous vote data.
+
+### Cross-cultural chilling effects: anonymity is more critical in collectivist markets
+Penney (2016) chilling effect + Noelle-Neumann (1974) spiral of silence both have stronger manifestations in collectivist cultures (Japan, South Korea). Any future feature that reduces anonymity must be assessed not against US/UK norms but against the most vulnerable cultural context in the platform's scope. The weakest privacy protection determines the floor.
