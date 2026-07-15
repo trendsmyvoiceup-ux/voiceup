@@ -78,6 +78,7 @@ function readBattle(slug: string): StudioBattle | null {
     battleHashtags: tryRead(path.join(battleDir, "hashtags.txt")),
     battleScript:   tryRead(path.join(battleDir, "script.txt")),
     pipeline:       readPipeline(battleDir),
+    dbApproval:     null,
   };
 }
 

@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { getComparisonBySlug } from "@/lib/comparisons";
 import { ComparisonVoter } from "@/components/comparison-voter";
 import { db } from "@/lib/db";
 import { dbBattleToComparison } from "@/lib/battle-adapter";
@@ -7,10 +6,21 @@ import type { Comparison } from "@/lib/comparisons";
 
 export const dynamic = "force-dynamic";
 
-const FALLBACK_SLUG = "apple-vs-android";
-
-async function getFeatured(): Promise<Comparison> {
+async function getFeatured(): Promise<Comparison | null> {
   try {
+    // Prefer the most recently Studio-published battle
+    const approval = await db.battleApproval.findFirst({
+      where: { publishedWebsiteAt: { not: null } },
+      orderBy: { publishedWebsiteAt: "desc" },
+    });
+    if (approval) {
+      const battle = await db.battle.findUnique({
+        where: { slug: approval.slug },
+        include: { subjectA: true, subjectB: true },
+      });
+      if (battle) return dbBattleToComparison(battle);
+    }
+    // Fall back to most recent active battle (covers pre-launch seed data)
     const battle = await db.battle.findFirst({
       where: { status: "active" },
       include: { subjectA: true, subjectB: true },
@@ -18,7 +28,7 @@ async function getFeatured(): Promise<Comparison> {
     });
     if (battle) return dbBattleToComparison(battle);
   } catch {}
-  return getComparisonBySlug(FALLBACK_SLUG)!;
+  return null;
 }
 
 async function getTotalSignals(): Promise<number | null> {
@@ -31,6 +41,14 @@ async function getTotalSignals(): Promise<number | null> {
 
 export default async function Home() {
   const [featured, totalSignals] = await Promise.all([getFeatured(), getTotalSignals()]);
+
+  if (!featured) {
+    return (
+      <main className="flex h-screen w-screen items-center justify-center bg-[oklch(0.07_0.004_270)]">
+        <p className="text-sm text-white/30">No battles published yet.</p>
+      </main>
+    );
+  }
 
   return (
     <main className="relative flex h-screen w-screen flex-col bg-[oklch(0.07_0.004_270)]">

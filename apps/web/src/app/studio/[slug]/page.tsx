@@ -2,8 +2,9 @@ import fs from "fs";
 import path from "path";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import type { StudioBattle, PipelineStatus } from "@/types/studio";
+import type { StudioBattle, PipelineStatus, DbApproval } from "@/types/studio";
 import { BattlePreviewPanel } from "@/components/studio/battle-preview-panel";
+import { db } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
@@ -78,6 +79,7 @@ function readBattle(slug: string): StudioBattle | null {
     battleHashtags: tryRead(path.join(battleDir, "hashtags.txt")),
     battleScript:   tryRead(path.join(battleDir, "script.txt")),
     pipeline:       readPipeline(battleDir),
+    dbApproval:     null, // filled in by caller
   };
 }
 
@@ -97,6 +99,25 @@ async function AsyncStudioPreviewPage({
   const { slug } = await params;
   const battle = readBattle(slug);
   if (!battle) notFound();
+
+  let dbApproval: DbApproval = null;
+  try {
+    const row = await db.battleApproval.findUnique({ where: { slug } });
+    if (row) {
+      dbApproval = {
+        status: row.status as "approved" | "rejected" | "needs_changes",
+        note: row.note,
+        approvedBy: row.approvedBy ?? null,
+        approvedAt: row.approvedAt?.toISOString() ?? null,
+        publishedBy: row.publishedBy ?? null,
+        publishedAt: row.publishedAt?.toISOString() ?? null,
+        republishedAt: row.republishedAt?.toISOString() ?? null,
+        publishedWebsiteAt: row.publishedWebsiteAt?.toISOString() ?? null,
+        updatedAt: row.updatedAt.toISOString(),
+      };
+    }
+  } catch {}
+  battle.dbApproval = dbApproval;
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-5xl flex-col gap-6 px-6 py-10">

@@ -1,11 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useCallback } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
-import type { StudioBattle, StudioStatus, StudioEntry, StudioStore } from "@/types/studio";
-
-const STORAGE_KEY = "opinion-platform:studio-status";
+import type { StudioBattle, StudioStatus, DbApproval } from "@/types/studio";
 
 const STATUS_META: Record<StudioStatus, { label: string; cls: string }> = {
   draft:                 { label: "Draft",         cls: "border-white/12 bg-white/4 text-white/40"              },
@@ -14,27 +13,19 @@ const STATUS_META: Record<StudioStatus, { label: string; cls: string }> = {
   approved:              { label: "Approved",      cls: "border-emerald-400/30 bg-emerald-400/8 text-emerald-400/90" },
   rejected:              { label: "Rejected",      cls: "border-rose-400/30 bg-rose-400/8 text-rose-400/90"       },
   publish_ready:         { label: "Publish Ready", cls: "border-violet-400/30 bg-violet-400/8 text-violet-400/90"  },
-  published_placeholder: { label: "Published",     cls: "border-emerald-300/30 bg-emerald-300/8 text-emerald-300/90" },
+  published_placeholder: { label: "Published ✓",  cls: "border-emerald-300/30 bg-emerald-300/8 text-emerald-300/90" },
 };
 
+function dbApprovalToStatus(a: DbApproval): StudioStatus | null {
+  if (!a) return null;
+  if (a.publishedWebsiteAt) return "published_placeholder";
+  if (a.status === "approved")      return "approved";
+  if (a.status === "rejected")      return "rejected";
+  if (a.status === "needs_changes") return "needs_review";
+  return null;
+}
+
 type Tab = "flow" | "tiktok" | "instagram" | "website";
-
-function loadEntry(slug: string): StudioEntry | null {
-  if (typeof window === "undefined") return null;
-  try {
-    const store: StudioStore = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "{}");
-    return store[slug] ?? null;
-  } catch { return null; }
-}
-
-function saveEntry(slug: string, entry: StudioEntry) {
-  if (typeof window === "undefined") return;
-  try {
-    const store: StudioStore = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "{}");
-    store[slug] = entry;
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
-  } catch {}
-}
 
 function defaultStatus(battle: StudioBattle): StudioStatus {
   if (battle.reviewApproved === true)  return "generated";
@@ -568,33 +559,42 @@ function ApprovalBtn({
 // ── Main export ───────────────────────────────────────────────────────────────
 
 export function BattlePreviewPanel({ battle }: { battle: StudioBattle }) {
-  const [tab, setTab]           = useState<Tab>("flow");
-  const [entry, setEntry]       = useState<StudioEntry | null>(null);
-  const [mounted, setMounted]   = useState(false);
+  const [tab, setTab]             = useState<Tab>("flow");
+  const [approval, setApproval]   = useState<DbApproval>(battle.dbApproval);
+  const [publishing, setPublishing] = useState(false);
+  const [publishError, setPublishError] = useState<string | null>(null);
+  const router = useRouter();
 
-  useEffect(() => {
-    setEntry(loadEntry(battle.slug));
-    setMounted(true);
-  }, [battle.slug]);
-
-  const status: StudioStatus = entry?.status ?? defaultStatus(battle);
+  const dbStatus  = dbApprovalToStatus(approval);
+  const status: StudioStatus = dbStatus ?? defaultStatus(battle);
   const meta = STATUS_META[status];
 
-  function applyStatus(next: StudioStatus) {
-    const newEntry: StudioEntry = {
-      status: next,
-      updatedAt: new Date().toISOString(),
-      ...(entry?.publishedAt ? { publishedAt: entry.publishedAt } : {}),
-    };
-    setEntry(newEntry);
-    saveEntry(battle.slug, newEntry);
-  }
+  const postApprove = useCallback(async (next: "approved" | "rejected" | "needs_changes") => {
+    const res = await fetch(`/api/studio/${battle.slug}/approve`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: next }),
+    });
+    if (res.ok) {
+      const data = await res.json() as { approval: DbApproval };
+      setApproval(data.approval);
+      router.refresh();
+    }
+  }, [battle.slug, router]);
 
-  function handlePublish() {
-    const now = new Date().toISOString();
-    const newEntry: StudioEntry = { status: "published_placeholder", updatedAt: now, publishedAt: now };
-    setEntry(newEntry);
-    saveEntry(battle.slug, newEntry);
+  async function handlePublish() {
+    setPublishing(true);
+    setPublishError(null);
+    const res = await fetch(`/api/studio/${battle.slug}/publish-website`, { method: "POST" });
+    if (res.ok) {
+      const data = await res.json() as { publishedWebsiteAt: string };
+      setApproval(prev => prev ? { ...prev, publishedWebsiteAt: data.publishedWebsiteAt } : prev);
+      router.refresh();
+    } else {
+      const data = await res.json().catch(() => ({ error: "Unknown error" })) as { error: string };
+      setPublishError(data.error ?? "Publish failed");
+    }
+    setPublishing(false);
   }
 
   return (
@@ -633,17 +633,14 @@ export function BattlePreviewPanel({ battle }: { battle: StudioBattle }) {
       {/* Approval bar */}
       <div className="sticky bottom-4 rounded-2xl border border-white/10 bg-[oklch(0.11_0.004_270/0.96)] px-5 py-4 backdrop-blur-md">
         <div className="flex flex-wrap items-center gap-3">
-          {/* Current status + timestamp */}
+          {/* Status chip + timestamp */}
           <div className="flex items-center gap-3">
-            <span className={cn(
-              "rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-wide",
-              mounted ? meta.cls : "border-white/8 bg-white/3 text-white/25"
-            )}>
-              {mounted ? meta.label : "Loading…"}
+            <span className={cn("rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-wide", meta.cls)}>
+              {meta.label}
             </span>
-            {entry?.updatedAt && (
+            {approval?.updatedAt && (
               <span className="text-[11px] text-white/20">
-                {new Date(entry.updatedAt).toLocaleString()}
+                {new Date(approval.updatedAt).toLocaleString()}
               </span>
             )}
           </div>
@@ -652,69 +649,70 @@ export function BattlePreviewPanel({ battle }: { battle: StudioBattle }) {
           <div className="ml-auto flex flex-wrap gap-2">
             <ApprovalBtn
               label="Approve"
-              active={status === "approved"}
-              onClick={() => applyStatus("approved")}
+              active={approval?.status === "approved" && !approval.publishedWebsiteAt}
+              onClick={() => postApprove("approved")}
               cls="border-emerald-400/30 hover:bg-emerald-400/10 hover:text-emerald-400"
             />
             <ApprovalBtn
               label="Needs Changes"
-              active={status === "needs_review"}
-              onClick={() => applyStatus("needs_review")}
+              active={approval?.status === "needs_changes"}
+              onClick={() => postApprove("needs_changes")}
               cls="border-amber-400/30 hover:bg-amber-400/10 hover:text-amber-300"
             />
             <ApprovalBtn
               label="Reject"
-              active={status === "rejected"}
-              onClick={() => applyStatus("rejected")}
+              active={approval?.status === "rejected"}
+              onClick={() => postApprove("rejected")}
               cls="border-rose-400/30 hover:bg-rose-400/10 hover:text-rose-400"
             />
-            <ApprovalBtn
-              label="Publish Ready"
-              active={status === "publish_ready"}
-              onClick={() => applyStatus("publish_ready")}
-              cls="border-violet-400/30 hover:bg-violet-400/10 hover:text-violet-400"
-            />
-            <button
-              onClick={() => {}}
-              title="Regenerate — calls the Creative Agent (coming soon)"
-              className="rounded-xl border border-white/8 px-3 py-1.5 text-xs text-white/25 transition-colors hover:text-white/40 cursor-not-allowed"
-            >
-              Regenerate
-            </button>
           </div>
         </div>
 
-        {/* Publish action */}
-        {status === "publish_ready" && (
-          <div className="mt-3 flex items-center gap-3 rounded-xl border border-violet-400/20 bg-violet-400/5 px-4 py-3">
+        {/* Publish Website — only available when approved and not yet published */}
+        {approval?.status === "approved" && !approval.publishedWebsiteAt && (
+          <div className="mt-3 flex items-center gap-3 rounded-xl border border-emerald-400/20 bg-emerald-400/5 px-4 py-3">
             <div className="flex-1">
-              <p className="text-xs font-semibold text-violet-300/90">Ready to publish</p>
+              <p className="text-xs font-semibold text-emerald-300/90">Approved — ready to publish</p>
               <p className="mt-0.5 text-[11px] text-white/30">
-                Manual publishing only in V1. API publishing requires platform OAuth and approval.
+                Publishes battle to the Neon database and makes it live at /battle/{battle.slug}
               </p>
+              {publishError && <p className="mt-1 text-[11px] text-rose-400/80">{publishError}</p>}
             </div>
             <button
               onClick={handlePublish}
-              className="shrink-0 rounded-xl border border-violet-400/30 bg-violet-400/10 px-4 py-2 text-sm font-semibold text-violet-300 transition-all hover:bg-violet-400/20 active:scale-95"
+              disabled={publishing}
+              className="shrink-0 rounded-xl border border-emerald-400/30 bg-emerald-400/10 px-4 py-2 text-sm font-semibold text-emerald-300 transition-all hover:bg-emerald-400/20 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              Mark Published
+              {publishing ? "Publishing…" : "Publish to Website"}
             </button>
           </div>
         )}
 
-        {status === "published_placeholder" && (
+        {/* Published confirmation */}
+        {approval?.publishedWebsiteAt && (
           <div className="mt-3 flex items-center gap-3 rounded-xl border border-emerald-400/20 bg-emerald-400/5 px-4 py-3">
             <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-emerald-400/30 bg-emerald-400/10">
               <svg width="10" height="10" viewBox="0 0 14 14" fill="none" className="text-emerald-400">
                 <path d="M2 7l3.5 3.5L12 3.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </div>
-            <div>
-              <p className="text-xs font-semibold text-emerald-300/90">Marked as published</p>
-              {entry?.publishedAt && (
-                <p className="text-[11px] text-white/30">{new Date(entry.publishedAt).toLocaleString()}</p>
-              )}
+            <div className="flex-1">
+              <p className="text-xs font-semibold text-emerald-300/90">Published to website</p>
+              <p className="text-[11px] text-white/30">
+                {new Date(approval.publishedWebsiteAt).toLocaleString()}
+                {" · "}
+                <Link href={`/battle/${battle.slug}`} target="_blank" className="text-indigo-400/70 hover:text-indigo-400">
+                  /battle/{battle.slug} ↗
+                </Link>
+              </p>
             </div>
+            <button
+              onClick={handlePublish}
+              disabled={publishing}
+              className="shrink-0 rounded-xl border border-white/10 px-3 py-1.5 text-xs text-white/30 transition-colors hover:text-white/50 disabled:opacity-40"
+            >
+              {publishing ? "…" : "Republish"}
+            </button>
           </div>
         )}
       </div>

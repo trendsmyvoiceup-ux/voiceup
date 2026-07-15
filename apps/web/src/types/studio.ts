@@ -19,6 +19,18 @@ export type TikTokContent = {
   postingChecklist: string | null;
 };
 
+export type DbApproval = {
+  status: "approved" | "rejected" | "needs_changes";
+  note: string | null;
+  approvedBy: string | null;
+  approvedAt: string | null;
+  publishedBy: string | null;
+  publishedAt: string | null;
+  republishedAt: string | null;
+  publishedWebsiteAt: string | null;
+  updatedAt: string;
+} | null;
+
 export type StudioBattle = {
   slug: string;
   title: string;
@@ -35,6 +47,7 @@ export type StudioBattle = {
   battleHashtags: string | null;
   battleScript: string | null;
   pipeline: PipelineStatus;
+  dbApproval: DbApproval; // null until fetched from DB
 };
 
 export type StudioStatus =
