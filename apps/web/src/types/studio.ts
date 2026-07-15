@@ -41,6 +41,7 @@ export type StudioBattle = {
   reviewApproved: boolean | null;
   reviewedAt: string | null;
   hasTikTokPackage: boolean;
+  hasTikTokImage: boolean;
   hasPublishedPackage: boolean;
   tiktok: TikTokContent | null;
   battleCaption: string | null;

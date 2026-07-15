@@ -52,6 +52,7 @@ function readBattle(slug: string): StudioBattle | null {
 
   const tiktokDir = path.join(PUBLISHED_DIR, slug, "tiktok");
   const hasTikTok = tryExists(tiktokDir);
+  const hasTikTokImage = hasTikTok && ["image.png", "image.webp", "image.jpg"].some(f => tryExists(path.join(tiktokDir, f)));
   const sa = (b.subjectA as { name?: string })?.name ?? "Unknown";
   const sb = (b.subjectB as { name?: string })?.name ?? "Unknown";
 
@@ -65,6 +66,7 @@ function readBattle(slug: string): StudioBattle | null {
     reviewApproved,
     reviewedAt,
     hasTikTokPackage:    hasTikTok,
+    hasTikTokImage,
     hasPublishedPackage: tryExists(path.join(PUBLISHED_DIR, slug)),
     tiktok: hasTikTok ? {
       caption:          tryRead(path.join(tiktokDir, "caption.txt")),

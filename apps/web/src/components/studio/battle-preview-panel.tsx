@@ -290,52 +290,116 @@ function FlowTab({ battle }: { battle: StudioBattle }) {
 
 function TikTokPhone({ battle }: { battle: StudioBattle }) {
   const t = battle.tiktok;
+  const imageUrl = `/api/studio/${battle.slug}/tiktok-image`;
+  const hasImage = battle.hasTikTokImage;
+
+  // Extract first line of script as hook text
+  const hookLine = t?.script?.split("\n").filter(l => l.trim() && !l.startsWith("[")).at(0) ?? null;
+  const hashtagsShort = t?.hashtags?.split(/\s+/).slice(0, 3).join(" ") ?? null;
+
   return (
-    <div className="relative mx-auto w-[160px] overflow-hidden rounded-[24px] border border-white/10 bg-black shadow-2xl" style={{ aspectRatio: "9/16" }}>
-      {/* Background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-[oklch(0.15_0.04_270)] via-black to-[oklch(0.12_0.04_20)]" />
+    <div
+      className="relative mx-auto overflow-hidden rounded-[20px] border border-white/10 bg-black shadow-2xl"
+      style={{ width: 180, aspectRatio: "9/16" }}
+    >
+      {/* Background: real image or gradient */}
+      {hasImage ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={imageUrl}
+          alt={battle.title}
+          className="absolute inset-0 h-full w-full object-cover"
+        />
+      ) : (
+        <div className="absolute inset-0 bg-gradient-to-br from-[oklch(0.18_0.06_270)] via-[oklch(0.10_0.02_240)] to-[oklch(0.08_0.04_20)]" />
+      )}
 
-      {/* Top bar */}
-      <div className="absolute top-0 inset-x-0 flex items-center justify-between px-3 pt-3 pb-2">
-        <span className="text-[7px] font-bold text-white/50 uppercase tracking-widest">Human Signal</span>
-        <span className="text-[7px] text-white/30">Live</span>
+      {/* Scrim */}
+      <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/85" />
+
+      {/* Top bar — account + following */}
+      <div className="absolute top-0 inset-x-0 flex items-center justify-between px-3 pt-4">
+        <span className="text-[7px] font-bold uppercase tracking-widest text-white/80 drop-shadow">@humansignal</span>
+        <span className="rounded-full border border-white/40 px-2 py-0.5 text-[6px] font-semibold text-white/70">Follow</span>
       </div>
 
-      {/* Battle content */}
-      <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 px-4 text-center">
-        <p className="text-[8px] font-semibold uppercase tracking-widest text-white/35">{battle.category}</p>
-        <p className="text-base font-black leading-tight text-white">{battle.subjectA}</p>
-        <div className="flex items-center gap-2 w-full">
-          <div className="flex-1 h-px bg-white/15" />
-          <span className="text-[8px] font-black text-white/40">VS</span>
-          <div className="flex-1 h-px bg-white/15" />
+      {/* Hook overlay — upper-middle */}
+      {hookLine && (
+        <div className="absolute top-12 inset-x-3 text-center">
+          <p className="text-[9px] font-black leading-snug text-white drop-shadow-lg">{hookLine}</p>
         </div>
-        <p className="text-base font-black leading-tight text-white">{battle.subjectB}</p>
-        <p className="mt-1 text-[7px] text-white/30">Pick a side →</p>
+      )}
+
+      {/* VS treatment — center */}
+      <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 flex flex-col items-center gap-1.5 px-4 text-center">
+        <p className="text-[15px] font-black leading-tight text-white drop-shadow-lg">{battle.subjectA}</p>
+        <div className="flex w-full items-center gap-2">
+          <div className="h-px flex-1 bg-white/30" />
+          <span className="text-[10px] font-black text-white/60">VS</span>
+          <div className="h-px flex-1 bg-white/30" />
+        </div>
+        <p className="text-[15px] font-black leading-tight text-white drop-shadow-lg">{battle.subjectB}</p>
+        <p className="mt-1 rounded-full border border-white/30 bg-white/10 px-2.5 py-0.5 text-[7px] font-semibold text-white/80 backdrop-blur-sm">
+          Pick a side →
+        </p>
       </div>
 
-      {/* Caption overlay */}
-      <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/90 to-transparent px-3 pt-8 pb-3">
+      {/* Bottom — caption + hashtags + link */}
+      <div className="absolute bottom-0 inset-x-0 px-3 pb-3 pt-8">
         {t?.caption && (
-          <p className="text-[7px] text-white/75 leading-relaxed line-clamp-3">{t.caption}</p>
+          <p className="text-[7px] leading-relaxed text-white/85 line-clamp-2 drop-shadow">{t.caption}</p>
         )}
-        {t?.hashtags && (
-          <p className="mt-1 text-[6px] text-white/35 truncate">{t.hashtags?.split(" ").slice(0, 4).join(" ")}</p>
+        {hashtagsShort && (
+          <p className="mt-0.5 text-[6px] font-semibold text-white/50">{hashtagsShort}</p>
         )}
+        <p className="mt-1 text-[6px] text-white/35">humansignal.com/battle/{battle.slug}</p>
       </div>
 
-      {/* Right side actions */}
-      <div className="absolute right-2 bottom-16 flex flex-col items-center gap-3">
-        {[["♥", "Like"], ["💬", "Comment"], ["↗", "Share"]].map(([icon, lbl]) => (
-          <div key={lbl} className="flex flex-col items-center gap-0.5">
-            <div className="w-6 h-6 rounded-full border border-white/10 bg-white/8 flex items-center justify-center">
-              <span className="text-[8px] text-white/50">{icon}</span>
+      {/* Right sidebar — TikTok chrome */}
+      <div className="absolute right-2 bottom-14 flex flex-col items-center gap-3">
+        {/* Avatar */}
+        <div className="flex flex-col items-center gap-0.5">
+          <div className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-white/40 bg-white/10">
+            <span className="text-[9px] font-black text-white/70">HS</span>
+          </div>
+          <div className="-mt-2 flex h-4 w-4 items-center justify-center rounded-full border border-white/30 bg-[oklch(0.55_0.25_20)]">
+            <span className="text-[7px] text-white font-bold">+</span>
+          </div>
+        </div>
+        {/* Actions */}
+        {[
+          { icon: "♥", count: "—" },
+          { icon: "💬", count: "—" },
+          { icon: "↗", count: "Share" },
+        ].map(({ icon, count }) => (
+          <div key={icon} className="flex flex-col items-center gap-0.5">
+            <div className="flex h-6 w-6 items-center justify-center rounded-full border border-white/15 bg-white/10">
+              <span className="text-[8px] text-white/70">{icon}</span>
             </div>
-            <span className="text-[6px] text-white/25">{lbl}</span>
+            <span className="text-[5px] text-white/35">{count}</span>
           </div>
         ))}
       </div>
     </div>
+  );
+}
+
+// ── TikTok image status pill ──────────────────────────────────────────────────
+
+function ImageStatusPill({ hasImage }: { hasImage: boolean }) {
+  if (hasImage) {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full border border-emerald-400/30 bg-emerald-400/8 px-2.5 py-1 text-[10px] font-semibold text-emerald-400/90">
+        <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+        Image generated
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center gap-1 rounded-full border border-amber-400/30 bg-amber-400/8 px-2.5 py-1 text-[10px] font-semibold text-amber-300/80">
+      <span className="h-1.5 w-1.5 rounded-full bg-amber-400/60" />
+      Image not generated yet
+    </span>
   );
 }
 
@@ -345,30 +409,52 @@ function TikTokTab({ battle }: { battle: StudioBattle }) {
 
   if (!t) return <MissingPackage platform="TikTok" category={battle.category.toLowerCase()} />;
 
+  const previewReady = battle.hasTikTokImage;
+
   return (
-    <div className="grid gap-8 lg:grid-cols-[180px_1fr]">
-      <div className="flex flex-col items-center gap-2">
-        <TikTokPhone battle={battle} />
-        <p className="text-[10px] text-white/25">9:16 preview</p>
+    <div className="flex flex-col gap-6">
+      {/* Status bar */}
+      <div className="flex flex-wrap items-center gap-3">
+        <ImageStatusPill hasImage={battle.hasTikTokImage} />
+        {previewReady ? (
+          <span className="inline-flex items-center gap-1 rounded-full border border-emerald-400/20 bg-emerald-400/5 px-2.5 py-1 text-[10px] font-semibold text-emerald-400/70">
+            Preview ready
+          </span>
+        ) : (
+          <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/3 px-2.5 py-1 text-[10px] text-white/30">
+            TikTok publish blocked — image required
+          </span>
+        )}
       </div>
 
-      <div className="flex flex-col gap-5">
-        <ContentBlock label="Caption" text={t.caption} />
-        <ContentBlock label="Script" text={t.script} mono />
-        <ContentBlock label="Hashtags" text={t.hashtags} mono />
-        <div className="flex flex-col gap-1.5">
-          <p className="text-[10px] font-semibold uppercase tracking-widest text-white/30">Battle Link</p>
-          <Link
-            href={`/battle/${battle.slug}`}
-            target="_blank"
-            className="font-mono text-sm text-indigo-400/80 hover:text-indigo-400 transition-colors underline-offset-2 hover:underline"
-          >
-            {link}
-          </Link>
+      <div className="grid gap-8 lg:grid-cols-[196px_1fr]">
+        {/* Phone preview */}
+        <div className="flex flex-col items-center gap-2">
+          <TikTokPhone battle={battle} />
+          <p className="text-[10px] text-white/25">9:16 preview · {battle.hasTikTokImage ? "real image" : "no image"}</p>
         </div>
-        {t.videoPrompt && (
-          <ContentBlock label="Video Prompt" text={t.videoPrompt} dim />
-        )}
+
+        <div className="flex flex-col gap-5">
+          <ContentBlock label="Caption" text={t.caption} />
+          <ContentBlock label="Script" text={t.script} mono />
+          <ContentBlock label="Hashtags" text={t.hashtags} mono />
+          <div className="flex flex-col gap-1.5">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-white/30">Battle Link</p>
+            <Link
+              href={`/battle/${battle.slug}`}
+              target="_blank"
+              className="font-mono text-sm text-indigo-400/80 hover:text-indigo-400 transition-colors underline-offset-2 hover:underline"
+            >
+              {link}
+            </Link>
+          </div>
+          {t.imagePrompt && (
+            <ContentBlock label="Image Prompt (for generation)" text={t.imagePrompt} dim />
+          )}
+          {t.videoPrompt && (
+            <ContentBlock label="Video Prompt" text={t.videoPrompt} dim />
+          )}
+        </div>
       </div>
     </div>
   );
