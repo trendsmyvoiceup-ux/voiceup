@@ -2,10 +2,24 @@ import Link from "next/link";
 import { getComparisonBySlug } from "@/lib/comparisons";
 import { ComparisonVoter } from "@/components/comparison-voter";
 import { db } from "@/lib/db";
+import { dbBattleToComparison } from "@/lib/battle-adapter";
+import type { Comparison } from "@/lib/comparisons";
 
 export const dynamic = "force-dynamic";
 
-const FEATURED_SLUG = "apple-vs-android";
+const FALLBACK_SLUG = "apple-vs-android";
+
+async function getFeatured(): Promise<Comparison> {
+  try {
+    const battle = await db.battle.findFirst({
+      where: { status: "active" },
+      include: { subjectA: true, subjectB: true },
+      orderBy: { createdAt: "desc" },
+    });
+    if (battle) return dbBattleToComparison(battle);
+  } catch {}
+  return getComparisonBySlug(FALLBACK_SLUG)!;
+}
 
 async function getTotalSignals(): Promise<number | null> {
   try {
@@ -16,8 +30,7 @@ async function getTotalSignals(): Promise<number | null> {
 }
 
 export default async function Home() {
-  const featured = getComparisonBySlug(FEATURED_SLUG)!;
-  const totalSignals = await getTotalSignals();
+  const [featured, totalSignals] = await Promise.all([getFeatured(), getTotalSignals()]);
 
   return (
     <main className="relative flex h-screen w-screen flex-col bg-[oklch(0.07_0.004_270)]">

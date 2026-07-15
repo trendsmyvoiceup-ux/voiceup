@@ -5,48 +5,30 @@
 
 ---
 
-## TASK-0042 — Signal Motivation Layer: public battle page V2
+## TASK-0043 — V1 completion: pipeline → database bridge + dynamic battle pages
 
-**Epic:** Epic 2 — Signal Motivation Layer: Experimental MVP
-**Status:** Ready
+**Epic:** V1 Ship
+**Status:** Done
 **Owner:** Engineering Agent
-**Opened:** 2026-07-14
+**Completed:** 2026-07-15
 
-### Objective
+### What was built
 
-Implement the motivation layer on the public battle page (`/battle/[slug]`). Deliver a complete vote → reveal → reason flow that is testable against real voter behavior.
+1. `apps/web/scripts/import-battle.ts` — bridge script: reads `output/battles/<slug>/battle.json`,
+   upserts Source/Subject/Battle into Neon. Idempotent. Run with:
+   `cd apps/web && npx tsx scripts/import-battle.ts <slug>`
 
-### Scope
+2. `apps/web/src/lib/battle-adapter.ts` — maps DB battle row to the `Comparison` type
+   the existing ComparisonVoter expects. Derives visualTheme from category.
 
-- Post-vote reveal: results display after vote only, never before
-- Minority / majority post-vote framing: neutral distinctiveness copy ("You're in the 29% who chose B — a distinctive view")
-- Optional reason selection: preset options (3–5), zero-friction skip, no free text
-- Wording configuration layer: all copy in a central config object, not hardcoded inline
+3. `apps/web/src/app/battle/[slug]/page.tsx` — now DB-first with static fallback.
+   Changed from static generation to `force-dynamic`. Any imported battle gets a
+   public page without code changes.
 
-### Acceptance criteria
+4. `apps/web/src/app/page.tsx` — homepage now shows the most recently created DB battle,
+   falling back to the hardcoded `apple-vs-android` if the DB is empty.
 
-- [ ] No vote results displayed before the user casts a vote
-- [ ] Post-vote reveal shows correct percentage for both options
-- [ ] Minority result copy uses distinctiveness framing (not loss/defeat language)
-- [ ] Majority result copy is neutral (not "winning" language)
-- [ ] Optional reason section has a visible, zero-friction skip
-- [ ] Reason selection does not require login, profile, or any account action
-- [ ] All display copy lives in a named config object in the component or a separate config file
-- [ ] No gamification mechanics introduced (no streaks, points, badges, leaderboards)
-- [ ] `pnpm build` passes from `apps/web/`
-- [ ] Founder QA pass: full vote → reveal → reason flow works end-to-end
+### V1 end-to-end flow is now complete
 
-### Implementation notes
-
-- Start from: `apps/web/src/app/battle/[slug]/page.tsx` (or equivalent route)
-- Votes are currently localStorage-based — do not change the storage mechanism
-- The reason selection result does not need to persist at MVP — localStorage is acceptable
-- Follow V2 design language: dark, minimal, Linear/Vercel aesthetic; see `memory/product.md`
-- Do NOT implement mission framing, contribution ladder, or pre-vote participation count
-- Read `memory/product.md` motivation layer principles before implementing any copy
-- Read `memory/compliance.md` prohibited mechanics list before implementing any engagement mechanic
-
-### Research basis
-
-`.ai/RESEARCH.md` — Deliverable 7 (MVP recommendation); Deliverable 5 (UX variants); Critical Review (confirmed findings)
-`.ai/memory/product.md` — Post-vote reveal (non-negotiable), neutral framing, minority framing, prohibited mechanics
+After running `import-battle.ts`, the full pipeline is connected:
+Pipeline (filesystem) → import script → Neon DB → public battle page → votes → reveal → reason → next

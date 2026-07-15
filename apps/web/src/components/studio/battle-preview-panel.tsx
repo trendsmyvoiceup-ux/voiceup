@@ -17,7 +17,7 @@ const STATUS_META: Record<StudioStatus, { label: string; cls: string }> = {
   published_placeholder: { label: "Published",     cls: "border-emerald-300/30 bg-emerald-300/8 text-emerald-300/90" },
 };
 
-type Tab = "tiktok" | "instagram" | "website";
+type Tab = "flow" | "tiktok" | "instagram" | "website";
 
 function loadEntry(slug: string): StudioEntry | null {
   if (typeof window === "undefined") return null;
@@ -165,10 +165,135 @@ function BattlePipeline({ battle }: { battle: StudioBattle }) {
 // ── Platform tabs ─────────────────────────────────────────────────────────────
 
 const TABS: { key: Tab; label: string }[] = [
+  { key: "flow",      label: "Flow"      },
   { key: "tiktok",    label: "TikTok"    },
   { key: "instagram", label: "Instagram" },
   { key: "website",   label: "Website"   },
 ];
+
+// ── Motivation Flow preview ────────────────────────────────────────────────────
+
+function FlowStep({
+  number, label, detail, experiment,
+}: {
+  number: number; label: string; detail: string; experiment?: string;
+}) {
+  return (
+    <div className="flex items-start gap-4">
+      <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-white/12 bg-white/4 text-[10px] font-bold text-white/40">
+        {number}
+      </div>
+      <div className="flex flex-1 flex-col gap-0.5">
+        <div className="flex items-center gap-2">
+          <p className="text-sm font-semibold text-white/80">{label}</p>
+          {experiment && (
+            <span className="rounded-full border border-indigo-400/25 bg-indigo-400/8 px-2 py-0.5 text-[9px] font-semibold text-indigo-400/70">
+              {experiment}
+            </span>
+          )}
+        </div>
+        <p className="text-xs text-white/35">{detail}</p>
+      </div>
+    </div>
+  );
+}
+
+function FlowArrow() {
+  return (
+    <div className="ml-[11px] flex items-center">
+      <div className="h-4 w-px bg-white/10" />
+    </div>
+  );
+}
+
+function FlowTab({ battle }: { battle: StudioBattle }) {
+  return (
+    <div className="flex flex-col gap-6">
+      {/* Header */}
+      <div className="rounded-xl border border-indigo-400/15 bg-indigo-400/5 px-4 py-3">
+        <p className="text-[10px] font-semibold uppercase tracking-widest text-indigo-400/70">Epic 2 — Signal Motivation Layer</p>
+        <p className="mt-1 text-xs text-white/45">This preview shows the complete voter experience for this battle. Each experiment is labelled with its ID from the manifest.</p>
+      </div>
+
+      {/* Flow steps */}
+      <div className="flex flex-col rounded-2xl border border-white/8 bg-white/[0.02] px-5 py-5">
+        <p className="mb-5 text-[10px] font-semibold uppercase tracking-widest text-white/25">Motivation Flow</p>
+        <div className="flex flex-col">
+          <FlowStep
+            number={1}
+            label="Pre-vote"
+            detail={`"${battle.subjectA} vs ${battle.subjectB}" — category pill, two choice zones, VS badge`}
+          />
+          <FlowArrow />
+          <FlowStep
+            number={2}
+            label="Curiosity hint"
+            detail="'Results reveal after you vote' — surfaces information gap without showing direction"
+            experiment="EXP-001"
+          />
+          <FlowArrow />
+          <FlowStep
+            number={3}
+            label="Vote"
+            detail="User taps their choice. Signal is cast immediately. No confirmation required."
+          />
+          <FlowArrow />
+          <FlowStep
+            number={4}
+            label="Reveal"
+            detail="Distribution bar + signal count. Majority or minority framing based on user's position."
+            experiment="EXP-002"
+          />
+          <FlowArrow />
+          <FlowStep
+            number={5}
+            label="Optional reason"
+            detail="5 preset reasons + skip. Zero friction. No login. Stored locally."
+            experiment="EXP-003"
+          />
+          <FlowArrow />
+          <FlowStep
+            number={6}
+            label="Next battle"
+            detail="Prominent CTA. Objective is continuity, not engagement maximisation."
+            experiment="EXP-004"
+          />
+        </div>
+      </div>
+
+      {/* Battle-specific wording preview */}
+      <div className="flex flex-col gap-3">
+        <p className="text-[10px] font-semibold uppercase tracking-widest text-white/25">Wording Preview — this battle</p>
+        <div className="grid gap-2 sm:grid-cols-2">
+          {[
+            { label: "Majority copy",  text: `Your view — shared by X%.` },
+            { label: "Minority copy",  text: `A distinctive signal — you're in the X% on this one.` },
+            { label: "Reason prompt",  text: "What shaped your view?" },
+            { label: "Next CTA",       text: "Next battle →" },
+          ].map(({ label, text }) => (
+            <div key={label} className="flex flex-col gap-1 rounded-xl border border-white/6 bg-white/[0.02] px-3 py-2.5">
+              <p className="text-[9px] font-semibold uppercase tracking-widest text-white/25">{label}</p>
+              <p className="text-xs text-white/55 italic">&ldquo;{text}&rdquo;</p>
+            </div>
+          ))}
+        </div>
+        <p className="text-[10px] text-white/20">All copy is configurable in <code className="font-mono text-white/30">lib/wording-config.ts</code></p>
+      </div>
+
+      {/* Live link */}
+      <div className="flex flex-col gap-1.5">
+        <p className="text-[10px] font-semibold uppercase tracking-widest text-white/30">Live Battle</p>
+        <Link
+          href={`/battle/${battle.slug}`}
+          target="_blank"
+          className="font-mono text-sm text-indigo-400/80 transition-colors hover:text-indigo-400 hover:underline underline-offset-2"
+        >
+          /battle/{battle.slug} ↗
+        </Link>
+      </div>
+    </div>
+  );
+}
 
 // ── TikTok preview ────────────────────────────────────────────────────────────
 
@@ -443,7 +568,7 @@ function ApprovalBtn({
 // ── Main export ───────────────────────────────────────────────────────────────
 
 export function BattlePreviewPanel({ battle }: { battle: StudioBattle }) {
-  const [tab, setTab]           = useState<Tab>("tiktok");
+  const [tab, setTab]           = useState<Tab>("flow");
   const [entry, setEntry]       = useState<StudioEntry | null>(null);
   const [mounted, setMounted]   = useState(false);
 
@@ -496,6 +621,7 @@ export function BattlePreviewPanel({ battle }: { battle: StudioBattle }) {
           ))}
         </div>
 
+        {tab === "flow"      && <FlowTab      battle={battle} />}
         {tab === "tiktok"    && <TikTokTab    battle={battle} />}
         {tab === "instagram" && <InstagramTab battle={battle} />}
         {tab === "website"   && <WebsiteTab   battle={battle} />}

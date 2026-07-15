@@ -19,6 +19,34 @@ Binding principles for any human or AI agent contributing to this repository.
 - Do not create application code without explicit approval.
 - Document every important decision in `.ai/DECISIONS.md` (or `DECISIONS.md` at root, per current convention).
 
+## Communication discipline
+
+The repository is the source of truth. Agent responses are implementation reports, not documentation.
+
+**Output budget:** 200–500 words per response. Hard ceiling: ~700 words. Treat output tokens as a scarce resource.
+
+**Standard output format:**
+
+```
+STATUS          — completed / partial / blocked
+KEY DECISIONS   — max 5 bullets; only what cannot be inferred from code
+FILES           — (+) created, (~) modified; names only when not obvious
+EXPERIMENTS     — newly introduced experiments only
+RISKS           — important risks only
+BUILD           — result only
+BLOCKERS        — only if they exist
+```
+
+**Never include:**
+- Explanation of obvious implementation details
+- Narration of the coding process
+- Restatement of the prompt
+- File-by-file listings when the diff is self-explanatory
+- Line-by-line code description
+- Justification of standard choices
+
+**Only report** information the Founder cannot infer by reading the diff, commit, or code. If a decision is strategically important, explain it. Otherwise, remain silent on it.
+
 ## Memory discipline
 
 - Read `.ai/memory/INDEX.md` at the start of any session where you will write code or make architectural choices.
